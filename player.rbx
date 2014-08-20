@@ -3,7 +3,6 @@
 require 'unimidi'
 require 'midi'
 
-
 # input = UniMIDI::Input.gets
 # output = UniMIDI::Output.gets
 input = UniMIDI::Input.use(1)
