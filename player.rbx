@@ -19,7 +19,10 @@ output = UniMIDI::Output.use(TRAKTOR_INPUT)
 MIDI.using(input, output) do
   channel 0 # Channel 1
 
-  Signal.trap("QUIT") do  # CTRL-\
+  Signal.trap("QUIT") { fade_out } # CTRL-\
+  Signal.trap("USR1") { fade_out } # kill -SIGUSR1 <pid>
+
+  def fade_out
     cc CC_CUE, 127        # Goto cue 1 (first cue)
     cc CC_X_FADER, 0      # Xfader
     note NOTE_PLAY        # Play Track
