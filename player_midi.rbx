@@ -31,13 +31,21 @@ class SwitchPack < Fixture
 end
 
 MIDI.using(input, output) do
+  def on(controller)
+    $stdout.puts "On:  %s" % controller if ENV['DEBUG']
+    cc controller, 127
+    sleep FADETIME * 3
+  end
+  def off(controller)
+    $stdout.puts "Off: %s" % controller if ENV['DEBUG']
+    cc controller, 0
+    sleep FADETIME * 3
+  end
+
   channel 0 # Channel 1
-  cc CC_STOP_TIMER,  0    # Stop Timer
-  sleep FADETIME
-  cc CC_RESET_TIMER, 0    # Toggle Reset Timer down
-  sleep FADETIME
-  cc CC_START_TIMER, 127
-  sleep FADETIME
+  off CC_STOP_TIMER    # Stop Timer
+  off CC_RESET_TIMER   # Toggle Reset Timer down
+  on  CC_START_TIMER
 
   @univers = Universe.new('/dev/tty.usbserial-EN095377', SwitchPack => 1)
   @univers.fixtures[0].all = 0, 255, 255, 255
@@ -45,17 +53,13 @@ MIDI.using(input, output) do
   Signal.trap("QUIT") { fade_shuffle_in } # CTRL-\
   Signal.trap("USR1") { fade_shuffle_in } # kill -SIGUSR1 <pid>
 
-  cc CC_START_TIMER, 0
-  sleep FADETIME
+  off CC_START_TIMER   # Toggle Start Timer down
 
   def fade_shuffle_in
     $stdout.puts "Fade Shuffle In"
-    cc CC_STOP_TIMER,  127 # Stop Timer
-    sleep FADETIME
-    cc CC_PLAY,        127 # Play Track
-    sleep FADETIME
-    cc CC_X_FADER,     0   # XFader
-    sleep FADETIME
+    on  CC_STOP_TIMER  # Stop Timer
+    on  CC_PLAY        # Play Track
+    off CC_X_FADER     # XFader
     @univers.fixtures[0].all = 0, 0, 0, 0
 
     # Fade live input out
@@ -70,30 +74,24 @@ MIDI.using(input, output) do
       sleep FADETIME
     end
 
-    cc CC_RESET_TIMER, 0    # Toggle Reset Timer down
-    sleep FADETIME
+    off CC_RESET_TIMER # Toggle Reset Timer down
   end
 
   def fade_shuffle_out
     $stdout.puts "Fade Shuffle Out"
-    cc CC_RESET_TIMER, 127 # Reset Timer
-    sleep FADETIME
-    cc CC_START_TIMER, 127  # Start Timer
-    sleep FADETIME
+    on  CC_RESET_TIMER # Reset Timer
+    on  CC_START_TIMER # Start Timer
 
     (127.downto(0)).each do |i|
       @univers.fixtures[0].all = i * 2, 255 - i * 2, 255 - i * 2, 255 - i * 2
-      cc CC_X_FADER, i     # XFader
+      cc CC_X_FADER, i # XFader
       sleep FADETIME
     end
     @univers.fixtures[0].all = 0, 255, 255, 255
-    cc CC_PLAY,        0   # Stop track
-    sleep FADETIME
-    cc CC_NEXT_TRACK,  127 # Load next track
-    sleep FADETIME
+    off CC_PLAY        # Stop track
+    on  CC_NEXT_TRACK  # Load next track
 
-    cc CC_START_TIMER, 0   # Toggle Start Timer down
-    sleep FADETIME
+    off CC_START_TIMER # Toggle Start Timer down
   end
 
   # Recieve loop
