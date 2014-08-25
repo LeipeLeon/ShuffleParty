@@ -42,9 +42,14 @@ MIDI.using(input, output) do
 
     # Fade live input out
     (0.upto(127)).each do |i|
-      @univers.fixtures[0].all = i * 2, 255 - i * 2, 255 - i * 2, 255 - i * 2
+      @univers.fixtures[0].all = i, 255 - i * 2, 255 - i * 2, 255 - i * 2
       sleep FADETIME
       cc CC_X_FADER, i
+    end
+    # Fade in spotlight is slower
+    (128.upto(255)).each do |i|
+      @univers.fixtures[0].all = i, 0, 0, 0
+      sleep FADETIME
     end
   end
 
