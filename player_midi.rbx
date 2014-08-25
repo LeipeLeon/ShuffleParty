@@ -8,10 +8,12 @@ include Rdmx
 FADETIME       = 0.05  # Sleep between values from 0 .. 127 and back
 TRAKTOR_INPUT  = 0     # IAC BUS 1
 TRAKTOR_OUTPUT = 1     # IAC BUS 2
-CC_CUE         = 9
+NOTE_CUP       = "G-1" # Cue & Play
+NOTE_PLAY      = "D1"
+CC_PLAY        = 9
 CC_FADE_OUT    = 10
 CC_X_FADER     = 11
-NOTE_PLAY      = "D1"
+CC_NEXT_TRACK  = 12   # Next track in playlist
 
 input = UniMIDI::Input.gets
 output = UniMIDI::Output.gets
@@ -34,13 +36,13 @@ MIDI.using(input, output) do
 
   def fade_out
     @univers.fixtures[0].all = 0, 0, 0, 0
-    cc CC_CUE, 127        # Goto cue 1 (first cue)
+    # note NOTE_CUP         # Play Track
+    cc CC_PLAY, 127
     cc CC_X_FADER, 0      # Xfader
-    note NOTE_PLAY        # Play Track
 
     # Fade live input out
     (0.upto(127)).each do |i|
-      @univers.fixtures[0].all = i * 2, 255 - i * 2, 0, 0
+      @univers.fixtures[0].all = i * 2, 255 - i * 2, 255 - i * 2, 255 - i * 2
       sleep FADETIME
       cc CC_X_FADER, i
     end
@@ -52,15 +54,13 @@ MIDI.using(input, output) do
     # Wait for the fade-out cue
     if message.index == CC_FADE_OUT && message.value == 127
       (127.downto(0)).each do |i|
-        @univers.fixtures[0].all = i * 2, 255 - i * 2, 0, 0
+        @univers.fixtures[0].all = i * 2, 255 - i * 2, 255 - i * 2, 255 - i * 2
         sleep FADETIME
         cc CC_X_FADER, i
       end
       @univers.fixtures[0].all = 0, 255, 255, 255
-      note NOTE_PLAY
-      off
-      # TODO: Load next track
-      cc CC_CUE, 127    # Goto cue 1 (first cue)
+      cc CC_PLAY, 0
+      cc CC_NEXT_TRACK, 127  # Load next track
     end
   end
   
