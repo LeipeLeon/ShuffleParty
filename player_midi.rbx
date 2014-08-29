@@ -5,7 +5,7 @@ require 'midi'
 require './vendor/rdmx/rdmx'
 include Rdmx
 
-FADETIME       = 0.05  # Sleep between values from 0 .. 127 and back
+FADETIME       = 0.025  # Sleep between values from 0 .. 127 and back
 TRAKTOR_INPUT  = 0     # IAC BUS 1
 TRAKTOR_OUTPUT = 1     # IAC BUS 2
 NOTE_CUP       = "G-1" # Cue & Play
@@ -32,23 +32,30 @@ end
 
 MIDI.using(input, output) do
   def on(controller)
-    $stdout.puts "On:  %s" % controller if ENV['DEBUG']
+    $stdout.puts "[%s] On: %s" % [Time.now.to_f, controller] if ENV['DEBUG']
     cc controller, 127
     sleep FADETIME * 3
   end
   def off(controller)
-    $stdout.puts "Off: %s" % controller if ENV['DEBUG']
+    $stdout.puts "[%s] Off: %s" % [Time.now.to_f, controller] if ENV['DEBUG']
     cc controller, 0
     sleep FADETIME * 3
   end
-
+  def pulse(controller)
+    on(controller)
+    off(controller)
+  end
   channel 0 # Channel 1
   off CC_STOP_TIMER    # Stop Timer
   off CC_RESET_TIMER   # Toggle Reset Timer down
   on  CC_START_TIMER
 
-  @univers = Universe.new('/dev/tty.usbserial-EN095377', SwitchPack => 1)
-  @univers.fixtures[0].all = 0, 255, 255, 255
+  begin
+    @univers = Universe.new('/dev/tty.usbserial-EN095377', SwitchPack => 1)
+  rescue Errno::ENOENT => e
+    @univers = nil
+  end
+  @univers.fixtures[0].all = 0, 255, 255, 255 if @univers
 
   Signal.trap("QUIT") { fade_shuffle_in } # CTRL-\
   Signal.trap("USR1") { fade_shuffle_in } # kill -SIGUSR1 <pid>
@@ -56,47 +63,45 @@ MIDI.using(input, output) do
   off CC_START_TIMER   # Toggle Start Timer down
 
   def fade_shuffle_in
-    $stdout.puts "Fade Shuffle In"
-    on  CC_STOP_TIMER  # Stop Timer
+    $stdout.puts "[%s] Fade Shuffle In" % Time.now.to_f
+    pulse  CC_STOP_TIMER  # Stop Timer
     on  CC_PLAY        # Play Track
-    off CC_X_FADER     # XFader
-    @univers.fixtures[0].all = 0, 0, 0, 0
+
+    @univers.fixtures[0].all = 0, 0, 0, 0 if @univers
 
     # Fade live input out
     (0.upto(127)).each do |i|
-      @univers.fixtures[0].all = i, 255 - i * 2, 255 - i * 2, 255 - i * 2
+      @univers.fixtures[0].all = i, 255 - i * 2, 255 - i * 2, 255 - i * 2 if @univers
       cc CC_X_FADER, i
       sleep FADETIME
     end
     # Fade in spotlight is slower
     (128.upto(255)).each do |i|
-      @univers.fixtures[0].all = i, 0, 0, 0
+      @univers.fixtures[0].all = i, 0, 0, 0 if @univers
       sleep FADETIME
     end
 
-    off CC_RESET_TIMER # Toggle Reset Timer down
+    pulse  CC_RESET_TIMER # Reset Timer
+
   end
 
   def fade_shuffle_out
-    $stdout.puts "Fade Shuffle Out"
-    on  CC_RESET_TIMER # Reset Timer
-    on  CC_START_TIMER # Start Timer
+    $stdout.puts "[%s] Fade Shuffle Out" % Time.now.to_f
 
     (127.downto(0)).each do |i|
-      @univers.fixtures[0].all = i * 2, 255 - i * 2, 255 - i * 2, 255 - i * 2
+      @univers.fixtures[0].all = i * 2, 255 - i * 2, 255 - i * 2, 255 - i * 2 if @univers
       cc CC_X_FADER, i # XFader
       sleep FADETIME
     end
-    @univers.fixtures[0].all = 0, 255, 255, 255
+    @univers.fixtures[0].all = 0, 255, 255, 255 if @univers
     off CC_PLAY        # Stop track
-    on  CC_NEXT_TRACK  # Load next track
-
-    off CC_START_TIMER # Toggle Start Timer down
+    pulse CC_NEXT_TRACK  # Load next track
+    pulse CC_START_TIMER # Start Timer
   end
 
   # Recieve loop
   receive do |message|
-    $stdout.puts message.inspect if ENV['DEBUG']
+    $stdout.puts "[%s] %s"  % [Time.now.to_f, message.inspect] if ENV['DEBUG']
 
     if message.index == CC_NEXT_DJ && message.value == 127
       fade_shuffle_in
