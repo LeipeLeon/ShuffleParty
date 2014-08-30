@@ -67,17 +67,17 @@ MIDI.using(input, output) do
     pulse  CC_STOP_TIMER  # Stop Timer
     on  CC_PLAY        # Play Track
 
-    @univers.fixtures[0].all = 0, 0, 0, 0 if @univers
+    @univers.fixtures[0].all = 0, 0, 0, 255 if @univers
 
     # Fade live input out
     (0.upto(127)).each do |i|
-      @univers.fixtures[0].all = i, 255 - i * 2, 255 - i * 2, 255 - i * 2 if @univers
+      @univers.fixtures[0].all = i, 255 - i * 2, 255 - i * 2, 255 if @univers
       cc CC_X_FADER, i
       sleep FADETIME
     end
     # Fade in spotlight is slower
     (128.upto(255)).each do |i|
-      @univers.fixtures[0].all = i, 0, 0, 0 if @univers
+      @univers.fixtures[0].all = i, 0, 0, 255 if @univers
       sleep FADETIME
     end
 
@@ -89,7 +89,7 @@ MIDI.using(input, output) do
     $stdout.puts "[%s] Fade Shuffle Out" % Time.now.to_f
 
     (127.downto(0)).each do |i|
-      @univers.fixtures[0].all = i * 2, 255 - i * 2, 255 - i * 2, 255 - i * 2 if @univers
+      @univers.fixtures[0].all = i * 2, 255 - i * 2, 255 - i * 2, 255 if @univers
       cc CC_X_FADER, i # XFader
       sleep FADETIME
     end
