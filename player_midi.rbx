@@ -2,8 +2,6 @@
 
 require 'unimidi'
 require 'midi'
-require './vendor/rdmx/rdmx'
-include Rdmx
 
 FADETIME       = 0.025  # Sleep between values from 0 .. 127 and back
 TRAKTOR_INPUT  = 0     # IAC BUS 1
@@ -26,9 +24,6 @@ output = UniMIDI::Output.gets
 # puts input.inspect
 # puts output.inspect
 
-class SwitchPack < Fixture
-  self.channels = :one, :two, :three, :four
-end
 
 MIDI.using(input, output) do
   def on(controller)
@@ -50,13 +45,6 @@ MIDI.using(input, output) do
   off CC_RESET_TIMER   # Toggle Reset Timer down
   on  CC_START_TIMER
 
-  begin
-    @univers = Universe.new('/dev/tty.usbserial-EN095377', SwitchPack => 1)
-  rescue Errno::ENOENT => e
-    @univers = nil
-  end
-  @univers.fixtures[0].all = 0, 255, 255, 255 if @univers
-
   Signal.trap("QUIT") { fade_shuffle_in } # CTRL-\
   Signal.trap("USR1") { fade_shuffle_in } # kill -SIGUSR1 <pid>
 
@@ -67,17 +55,10 @@ MIDI.using(input, output) do
     pulse  CC_STOP_TIMER  # Stop Timer
     on  CC_PLAY        # Play Track
 
-    @univers.fixtures[0].all = 0, 0, 0, 255 if @univers
 
     # Fade live input out
     (0.upto(127)).each do |i|
-      @univers.fixtures[0].all = i, 255 - i * 2, 255 - i * 2, 255 if @univers
       cc CC_X_FADER, i
-      sleep FADETIME
-    end
-    # Fade in spotlight is slower
-    (128.upto(255)).each do |i|
-      @univers.fixtures[0].all = i, 0, 0, 255 if @univers
       sleep FADETIME
     end
 
@@ -89,11 +70,9 @@ MIDI.using(input, output) do
     $stdout.puts "[%s] Fade Shuffle Out" % Time.now.to_f
 
     (127.downto(0)).each do |i|
-      @univers.fixtures[0].all = i * 2, 255 - i * 2, 255 - i * 2, 255 if @univers
       cc CC_X_FADER, i # XFader
       sleep FADETIME
     end
-    @univers.fixtures[0].all = 0, 255, 255, 255 if @univers
     off CC_PLAY        # Stop track
     pulse CC_NEXT_TRACK  # Load next track
     pulse CC_START_TIMER # Start Timer
