@@ -2,6 +2,7 @@
 
 require 'unimidi'
 require 'midi'
+require 'serialport'
 
 FADETIME       = 0.025  # Sleep between values from 0 .. 127 and back
 TRAKTOR_INPUT  = 0     # IAC BUS 1
@@ -16,6 +17,13 @@ CC_NEXT_DJ     = 116
 CC_START_TIMER = 117
 CC_STOP_TIMER  = 118
 CC_RESET_TIMER = 119
+A_FADE_TRESHOLD = 20.0
+#params for serial port
+port_str = "/dev/tty.usbmodem1451"  #may be different for you
+baud_rate = 9600
+data_bits = 8
+stop_bits = 1
+parity = SerialPort::NONE
 
 input = UniMIDI::Input.gets
 output = UniMIDI::Output.gets
@@ -24,8 +32,15 @@ output = UniMIDI::Output.gets
 # puts input.inspect
 # puts output.inspect
 
-
 MIDI.using(input, output) do
+
+  @serial_port = SerialPort.new(port_str, baud_rate, data_bits, stop_bits, parity)
+  puts "Connecting serial"
+  sleep 1 # wait a little bit to establish it
+  @serial_port.write("254")
+  @serial_port.write("\n")
+  @prev_pos = 0
+
   def on(controller)
     $stdout.puts "[%s] On: %s" % [Time.now.to_f, controller] if ENV['DEBUG']
     cc controller, 127
@@ -40,6 +55,21 @@ MIDI.using(input, output) do
     on(controller)
     off(controller)
   end
+  def write_serial(i)
+    a_pos = 0
+    if i < 64
+      a_pos = ((A_FADE_TRESHOLD / 64) * i ).to_i.to_s
+    else
+      a_pos = (255 - A_FADE_TRESHOLD - A_FADE_TRESHOLD + ((A_FADE_TRESHOLD / 64) * i )).to_i.to_s
+    end
+    if @prev_pos != a_pos
+      $stdout.puts [i, a_pos, ((A_FADE_TRESHOLD / 64) * i )].inspect if ENV['DEBUG']
+      @serial_port.write(a_pos)
+      @serial_port.write("\n")
+      @prev_pos = a_pos
+    end
+  end
+
   channel 0 # Channel 1
   off CC_STOP_TIMER    # Stop Timer
   off CC_RESET_TIMER   # Toggle Reset Timer down
@@ -55,10 +85,10 @@ MIDI.using(input, output) do
     pulse  CC_STOP_TIMER  # Stop Timer
     on  CC_PLAY        # Play Track
 
-
     # Fade live input out
     (0.upto(127)).each do |i|
       cc CC_X_FADER, i
+      write_serial(i)
       sleep FADETIME
     end
 
@@ -71,6 +101,7 @@ MIDI.using(input, output) do
 
     (127.downto(0)).each do |i|
       cc CC_X_FADER, i # XFader
+      write_serial(i)
       sleep FADETIME
     end
     off CC_PLAY        # Stop track
@@ -92,8 +123,8 @@ MIDI.using(input, output) do
     end
 
   end
-  
+
   # start the listener
   join
-  
+
 end
