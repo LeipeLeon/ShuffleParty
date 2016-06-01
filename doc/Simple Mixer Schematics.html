@@ -1,0 +1,250 @@
+<HTML>
+<HEAD><TITLE> Simple Mixer Schematics </TITLE></HEAD>
+<BODY>
+<b>
+Simple Mixer Schematics
+PREAMBLE: <BR>
+I've been cooking audio circuits for so long now I no-longer need
+a recipe. A lot of the theory I have forgotten over the years because I've
+just gotten to know the circuits by instinct. But this should serve as something
+of a guide to designing mixers from scratch.
+<p>
+The idea: <BR>
+Most people reading this would be well aware of what a mixer is used for
+but I'll reiterate here. The job of an Audio mixer is to combine various audio
+signals into a single audio signal. It is better known in electronic terms as a
+summing circuit. That is to say that the output is the sum of all of the inputs.
+A summing note is often represented as a circle with a PLUS (+) symbol in it.
+<p>
+Audio is of course an AC (Alternating current) signal but if we look at the incoming
+signals as a frozen moment in time we can represent it as 2 or more DC voltages.
+This is only useful to illustrate the point.
+<p>
+If we had two signals to be mixed. The first was 2 volts and the second was 3,
+the output should be the sum of these two voltages. 2+3=5. If on the other hand
+the two voltages were 2 volts and -3 volts then the output would be -1 volt. We are
+now subtracting 3 volts from the +2 volts leaving -3. It is important to recognise
+that we are dealing with what is known as a bipolar signal. That is one that can
+be positive or negative around a zero base-line.
+<p>
+When you get to the stage of adding many signals together, the complexity grows.
+In1 + In2 + In3 + In4 + .... and so on.
+<p>
+Because each incoming signal has it's own load impedance it is impractical just
+to wire all of them together and hope for the best. Especially when the following
+device you are trying to mix into also represents it's own load impedance. Sometimes
+you may be able to get away with it because the combined impedance is quite high.
+However most of the time it drags the whole network down and causes one or more
+devices to fail or distort or what ever. Usually no damage is done but it just
+won't work.
+<p>
+What is required is a little load isolation. (See Circuit 1: Passive mixer)
+The trade off is that you can't use terribly high value resistors because of
+the losses that they may cause. Especially if the load impedance of the
+following device is a little low. This will give the effect of severely attenuating
+some or all of the signals. A practical trade off has to be reached and
+this is as much trial and error as anything because the conditions change with
+each new device added or changed.
+<p>
+The device used at the summing node, IE: an amplifier or tape deck should be
+able to provide enough gain to compensate for the combined losses through
+the resistors and the combined loading of the system. But the loading will
+change depending on the combination of devices you have hooked into it.
+<p>
+This approach also creates another side effect. That is that a signal flowing
+into the summing node via one source can pollute the audio signals of other
+devices. Say you had two cassette decks that you wished to mix. However
+you also wanted to send the audio from cassette deck #1 to an effects
+processor. The audio from cassette deck #2, although attenuated slightly, will
+find it's way back to the audio from cassette deck 1 and also go to the
+effects processor.
+<p>
+ACTIVE STAGES: <BR>
+Active Mixer stages that use Op-Amps are generally known as virtual earth
+pre-amps. These are inverting in nature. 180 degrees out of phase. IE: The
+signal coming out of the mixer is upside down as compared to that which is
+entering it. You then need to use another inverting pre-amp to recover the
+phase.
+<p>
+This would seem silly at first until you realize that virtual earth means
+that the inverting node of the op-amp is held virtually at ground (zero
+volts) potential. Any signal entering the stage via one resistor cannot find
+it's way back out of any other resistor. This prevents the audio from *say*
+one synth, polluting the audio from another. Particularly useful in a Mixer
+with many busses and sends.
+<p>
+Generally speaking the pre-amps stage does not provide any gain. IE: is 1:1
+unity gain. A signal passing through a resistor with no load also presents
+no loss. Even with values beyond 1 meg. Although you may drop the effective
+current at the other end of the resistor. In this case the current loss is
+largely irrelevant. Especially at line-level. And is compensated by the
+op-amp's drive current in an active system.
+<p>
+It is better to have a mixer stage with no gain (or unity gain) because this
+will not amplify the noise. If good quality op-amps are used, they will not
+add significantly to the over all noise performance. So the RMS voltage
+coming out of the mixer should be the same as the sum of all it's inputs. If
+gain is necessary for a microphone or phono etc, the gain should be a
+special stage at the top of the chain. IE: the first preamp in the mixer
+channel. This is then mixed with everything else once the microphone is
+amplified to line level. This gain stage only adds noise to the microphone
+and not to the sum of the signals passing through the mixer.
+<P>
+It is interesting to note that resistors themselves add noise to a circuit.
+This is known as thermal noise. Generally speaking the rule of thumb is: The
+larger the value the resistor, the greater the thermal noise. This may not
+be significant in mixer stages at line level but where large gains are
+required it is desirable to use smaller value resistors. (as small as possible
+within reason.) Of course sometimes this cannot be achieved but is worth
+remembering as a rule of thumb. Metal film resistors have less thermal noise
+than carbon film resistors and are more temperature stable over all.
+So now there's two reasons to use Metal films in audio circuits.
+<p>
+Virtual Earth: <BR>
+Circuit 2 shows a basic active mixer. It uses 2 virtual earth preamps.
+One for the summing node and 1 to re-invert the phase of the signal.
+<p>
+The summing node (The point at which all the resistors meet) enteres into the
+inverting input of the op-amp. A feedback resistor is connected between the
+output of the op-amp and the inverting input. The function off this feedback
+loop is essentially to limit the open-loop gain of the op-amp.
+<p>
+Any signal entering the inverting input of the op-amp will appear at the output
+but it will be upside down. That is to say 180 degrees out of phase. In other
+words if you put 2 volts in you'd expect -2 volts out. To achieve unity gain
+(that is no gain or amplification at all) the feedback resistor must be the same
+as the summing resistor. In this case 10K. All the summing resistors are
+10K and the feedback resistor is 10K. Because the feedback resistor feeds
+the output signal back to the inverting input of the op-amp @ 180 degrees out
+of phases it cancels out any gain. It also means that the inverting input
+of the op-amp is held pretty close (If not exactly) at zero volts.
+or earth potential. Thus the term "virtual earth".
+<p>
+Any signal coming in through the summing resistor is like dumping it to
+ground via 10K. It theoretically has the same loss. However the feedback
+resistor of 10K gives the exact opposite in gain. So if you feed 2 volts
+in you will get 2 volts out only it will be upside down.
+<p>
+Because the summing node (The inverting input of the op-amp) is at virtually
+earth potential, there is little chance that this signal will bleed it's
+way out to any of the other inputs. Essentially speaking all the audio
+sources are isolated from each other.
+<p>
+However we're still left with the problem of the phase being wrong. If the
+output of the first op-amp were recombined with one of the other signals
+at a later stage it would cancel out rather than mix. So we have to re-invert
+the phase with yet another op-amp. This is a unity gain amplifier just like
+the first except that there is no summing node as such. (Except for the feedback
+resistor of course) The output of these two stages will now be the summ of all
+the inputs with the correct phase. Because of the inherent compensation
+of the feedback/op-amp/summing node, there is virtually no limit to the
+number of inputs you can put on this. Most modern op-amps have enough
+drive capability that 128 inputs would be just peanuts.
+<p>
+However it must be remembered that you are summing the inputs so if you
+had a powersupply of say +/- 15 volts, and 4 inputs of +5 volts each, The
+result would be 20 volts mathematically speaking. But the op-amp can only
+produce +15 volts so you would be clipping by 25%. Distortion occurs. Most
+op-amps can't swing exactly to the supply rails so clipping and distortion
+would be even worse. In practice however most audio signal wouldn't exceed
+a few hundred milivolts. A 2 volt peak to peak signal is considered to be
+a very high level.
+<p>
+Two more variations: <BR>
+The third circuit shows a Mixer with input attenuation. This is a fairly simple
+concept. A potentiometer is placed in the signal's path between the source and
+the summing resistor. When the wiper of the POT is at the top it simply
+represents a 10K load to the source. 10K is a pretty high value and most
+line level devices can easily drive this load. With the wiper at the other
+end of the pot it still represents a 10K load to the source but the input
+is effectively at ground (Shorted out) so no signal gets through.
+With the wiper in mid way position the input loading is still 10K, however
+the signal has to flow through a 5K resistance and is also dumped to
+ground by 5K. Halving the potential reaching the input resistor/summing node.
+<p>
+The fourth and final circuit shows a full on stereo mixer. Two new types of
+input networks are shown. the first is a stereo-in with balance. Similar to
+your stereo amplifier etc. A dual gain pot is use for volume whilst balance
+is single. Note that following the volume pot is a 10K resistor connected to
+one end of the balance pot. With the wiper in the centre position and
+connected to ground as it is, means that the incoming audio is virtually
+running through a 22.5K resistor to ground. That is 10K +(1/2 of 25K) = 22.5K
+Because of this attenuation the feedback resistor around the virtual earth
+op-amp is increased to 33K to compensate. This is not exactly unity gain
+but it comes awfully close. A very slight and probably un-noticeable gain.
+<p>
+The other input is MONO in but is pannable between left and right. The same
+deal as above applies here except that the first two 10K resistors are
+joined together so that the signal is split across two paths. Strictly speaking
+the first two 10K resistors in the stereo input are not necessary but are needed
+for the mono circuit so that the pan pot does not short out the signal when
+at either extremes of travel.  They are included in the stereo input simply to
+compensate for unity gain over all. This input scheme is the basis for 99% of
+all large mixing consoles.
+<p>
+Driving the busses: <BR>
+Note here that Mixers are more repetitious than complex. The circuits are relatively
+simple it's just that there's a lot of them. Especially in large recording
+consoles.
+<p>
+Usually these desks are seen in two halves. The input half and the output half.
+No matter how complex the input half may become, the output half is essentially
+just a virtual earth pre-amp as described in the circuits above. Often it is
+required to have many such busses for things like effects sends, subgroups,
+monitor bus and so on.
+<p>
+One of the beauties of the virtual earth mixer is that there is also virtually
+no limit to the number of additional busses as well as the main bus. One could
+arrange an effects send buss that derives it's signal from the same channel as
+the main bus. Except that each has it's own volume, pan and assignment independent
+of each other.
+<p>
+A FINAL WORD on the CAPACITORS: <BR>
+There are capacitors in two main circuit functions on the schematics above.
+the first is an electrolytic blocking capacitor. The idea is that a DC voltage
+can't got through a capacitor in series. What this means is that any DC offset
+voltage emanating from a preceding stage or source will be knocked on the head.
+only the AC voltage (The audio signal) will get through. The reason for this
+is simple. Suppose you had 10 sources each with a +1volt DC offset. This
+would add up in the mixer stage to be +10 volts. Not exactly desirable.
+It is therefore usual to use a blocking capacitor to stop this happening.
+This may not be so in all cases but is a rule of thumb for most audio circuits.
+The blocking capacitor is placed on the input near to where an unknown source is
+to enter the circuit. It is also usual to have one on the output stage which
+blocks any DC from leaving your circuit and propagating into any following
+equipment. The reason you need them on both input and output is simply that
+you never know what you might connect your circuit up to and there is no
+convention. If you are unsure of the polarity required for the blocking capacitor
+you can use a bi-polar electrolytic. Which is essentially two normal electrolytic
+capacitors back to back in the one package. The value of these capacitors are
+not important as long as it has no effect on the audio signal (IE accidently
+creates a lowpass filter) and the voltage rating is sufficient enough that it
+won't burn out. Usually 16 volt rating is sufficient. 25 volts to be on the
+safe side. 50 volts is called "over-engineering". The value of the capacitor
+can be anywhere between 0.1uF to 47uF but usually between 1.0uF and 10uF.
+<p>
+The other two capacitors, 27pF and 47pF are optional and for stability of
+the op-amps. Truth be known these were left in the schematic by accident because
+I simply modified the circuit from one I was working on at the time of writing.
+The original circuit was designed to closely approximate another commercial
+mixer as I was extending it's capabilities.
+<p>
+Out of interest these two capacitors cause the op-amps to behave as slight
+intergrator-filters limiting the top end response slightly above the audio
+bandwitdth. This is some times necessary where the op-amps used have such
+a high gain-bandwitch product that they tend to saturate with RF or at least
+HF signals. Thus becoming unstable in certain situations. Generally speaking
+these are largely irrelevant to the design.
+<p>
+Epilogue: <BR>
+Well hopefully I've provided enough information so you could go out and
+roll your own designs. And hopefully I've been able to work it in such
+a way that it's relatively understandable. If there are any mistakes, errors
+or omissions, please feel free to point them out. But Please no nit-picking.
+I'm only doing this because of the number of questions asked on this subject
+and the relative interest for people to design their own.
+<p>
+No responsibility is taken for any damages or any other shortcomings if you
+actually use this information. If you start out building one of my designs and
+end up wiring yourself to the national grid, it's you're problem.
+</BODY>
