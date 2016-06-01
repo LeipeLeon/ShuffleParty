@@ -10,9 +10,9 @@ SYNOPSIS
 USAGE
 -----
 
-- Traktor: 
+- Traktor:
   - Set deck A to live input and set it to the sound from the DJ mixer
-  - Set a start and fade-out cue on each track you want to use to automagically crosssfade back to live input
+  - Set a start and fade-out cue on each track you want to use to automagically crossfade back to live input
 
 - brew install watch
 
@@ -20,8 +20,18 @@ USAGE
 
 Commands:
 
-    ./player.rbx
+    ./player_midi.rbx
 
     DEBUG=true ./player.rbx
+
+    Select a MIDI input...
+    0) Apple Inc. IAC-besturingsbestand
+    2) Native Instruments Traktor Audio 10
+    > 0
+
+    Select a MIDI output...
+    1) Apple Inc. IAC-besturingsbestand
+    3) Native Instruments Traktor Audio 10
+    > 1
 
 Developed and Tested on OSX, might work on Windows
