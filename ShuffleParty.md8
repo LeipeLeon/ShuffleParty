@@ -27,12 +27,14 @@
 		<key>(g3_ASCII)ctrl_master_crossfader_scaleGroupBOn</key>
 		<string>(g3_INT)0</string>
 		<key>(g3_ASCII)ctrl_master_crossfader_slider</key>
-		<string>(g3_INT)0</string>
+		<string>(g3_FLOAT)1.000000</string>
 		<key>(g3_ASCII)ctrl_master_invColorB</key>
 		<string>(g3_INT)0</string>
 		<key>(g3_ASCII)ctrl_master_invColorG</key>
 		<string>(g3_INT)0</string>
 		<key>(g3_ASCII)ctrl_master_invColorR</key>
+		<string>(g3_INT)0</string>
+		<key>(g3_ASCII)ctrl_master_layerSetGroupB</key>
 		<string>(g3_INT)0</string>
 		<key>(g3_ASCII)ctrl_master_scale</key>
 		<string>(g3_FLOAT)0.500000</string>
@@ -83,18 +85,54 @@
 			<dict>
 				<key>(g3_ASCII)ctrlLayer</key>
 				<string>(g3_INT)1</string>
+				<key>(g3_ASCII)ctrl_layer_auto_rotateOn</key>
+				<string>(g3_INT)0</string>
+				<key>(g3_ASCII)ctrl_layer_auto_rotateZSpeed</key>
+				<string>(g3_FLOAT)0.585714</string>
+				<key>(g3_ASCII)ctrl_layer_color_additiveB</key>
+				<string>(g3_INT)0</string>
+				<key>(g3_ASCII)ctrl_layer_color_additiveG</key>
+				<string>(g3_INT)0</string>
+				<key>(g3_ASCII)ctrl_layer_color_additiveR</key>
+				<string>(g3_INT)0</string>
+				<key>(g3_ASCII)ctrl_layer_color_modulateB</key>
+				<string>(g3_INT)1</string>
+				<key>(g3_ASCII)ctrl_layer_color_modulateG</key>
+				<string>(g3_INT)1</string>
+				<key>(g3_ASCII)ctrl_layer_color_modulateR</key>
+				<string>(g3_INT)1</string>
+				<key>(g3_ASCII)ctrl_layer_hidden</key>
+				<string>(g3_INT)0</string>
 				<key>(g3_ASCII)ctrl_layer_media</key>
 				<string>(g3_INT)129</string>
+				<key>(g3_ASCII)ctrl_layer_mediaSet</key>
+				<string>(g3_INT)8</string>
 				<key>(g3_ASCII)layerActivated</key>
 				<string>(g3_INT)1</string>
 			</dict>
 			<dict>
 				<key>(g3_ASCII)ctrlLayer</key>
 				<string>(g3_INT)1</string>
+				<key>(g3_ASCII)ctrl_layer_color_additiveB</key>
+				<string>(g3_INT)0</string>
+				<key>(g3_ASCII)ctrl_layer_color_additiveG</key>
+				<string>(g3_INT)0</string>
+				<key>(g3_ASCII)ctrl_layer_color_additiveR</key>
+				<string>(g3_INT)0</string>
+				<key>(g3_ASCII)ctrl_layer_color_modulateB</key>
+				<string>(g3_INT)1</string>
+				<key>(g3_ASCII)ctrl_layer_color_modulateG</key>
+				<string>(g3_INT)1</string>
+				<key>(g3_ASCII)ctrl_layer_color_modulateR</key>
+				<string>(g3_INT)1</string>
+				<key>(g3_ASCII)ctrl_layer_hidden</key>
+				<string>(g3_INT)0</string>
 				<key>(g3_ASCII)ctrl_layer_media</key>
 				<string>(g3_INT)128</string>
 				<key>(g3_ASCII)ctrl_layer_mediaSet</key>
 				<string>(g3_INT)8</string>
+				<key>(g3_ASCII)ctrl_layer_scale_normalizeOn</key>
+				<string>(g3_INT)1</string>
 				<key>(g3_ASCII)ctrl_layer_scale_uniform</key>
 				<string>(g3_FLOAT)0.720000</string>
 				<key>(g3_ASCII)layerActivated</key>
@@ -19725,7 +19763,7 @@
 					<array>
 						<string>(g3_FLOAT)0.000000</string>
 						<string>(g3_FLOAT)0.000000</string>
-						<string>(g3_FLOAT)0.000000</string>
+						<string>(g3_FLOAT)0.394210</string>
 					</array>
 					<key>(g3_ASCII)fx_autoScale_beatPosition</key>
 					<array>
@@ -19809,7 +19847,14 @@
 					<key>(g3_ASCII)module_LocalPositionsDelta</key>
 					<dict/>
 					<key>(g3_ASCII)module_PositionsDelta</key>
-					<dict/>
+					<dict>
+						<key>Shake (all)</key>
+						<array>
+							<string>(g3_FLOAT)0.000000</string>
+							<string>(g3_FLOAT)0.000000</string>
+							<string>(g3_FLOAT)0.000000</string>
+						</array>
+					</dict>
 					<key>(g3_ASCII)module_ScalesDelta</key>
 					<dict/>
 					<key>(g3_ASCII)modulesDict</key>
@@ -19817,7 +19862,12 @@
 					<key>(g3_ASCII)modulesPixelsFiltersPOST</key>
 					<dict/>
 					<key>(g3_ASCII)modulesPixelsFiltersPRE</key>
-					<dict/>
+					<dict>
+						<key>(LL) WonderStudio</key>
+						<array/>
+						<key>Filter (layer)</key>
+						<array/>
+					</dict>
 					<key>(g3_ASCII)mute</key>
 					<string>(g3_INT)0</string>
 					<key>(g3_ASCII)noise</key>
@@ -19867,7 +19917,7 @@
 					<key>(g3_ASCII)soundOutBalance</key>
 					<string>(g3_FLOAT)0.500000</string>
 					<key>(g3_ASCII)soundOutLevel</key>
-					<string>(g3_FLOAT)1.000000</string>
+					<string>(g3_INT)1</string>
 					<key>(g3_ASCII)soundOutLinkToAlphaAndCrossfader</key>
 					<string>(g3_INT)1</string>
 					<key>(g3_ASCII)syphonAppName</key>
@@ -20337,7 +20387,14 @@
 					<key>(g3_ASCII)module_LocalPositionsDelta</key>
 					<dict/>
 					<key>(g3_ASCII)module_PositionsDelta</key>
-					<dict/>
+					<dict>
+						<key>Shake (all)</key>
+						<array>
+							<string>(g3_FLOAT)0.000000</string>
+							<string>(g3_FLOAT)0.000000</string>
+							<string>(g3_FLOAT)0.000000</string>
+						</array>
+					</dict>
 					<key>(g3_ASCII)module_ScalesDelta</key>
 					<dict/>
 					<key>(g3_ASCII)modulesDict</key>
@@ -20345,7 +20402,12 @@
 					<key>(g3_ASCII)modulesPixelsFiltersPOST</key>
 					<dict/>
 					<key>(g3_ASCII)modulesPixelsFiltersPRE</key>
-					<dict/>
+					<dict>
+						<key>(LL) WonderStudio</key>
+						<array/>
+						<key>Filter (layer)</key>
+						<array/>
+					</dict>
 					<key>(g3_ASCII)mute</key>
 					<string>(g3_INT)0</string>
 					<key>(g3_ASCII)noise</key>
@@ -20368,7 +20430,7 @@
 						<string>(g3_FLOAT)1.000000</string>
 					</array>
 					<key>(g3_ASCII)normalizeScale</key>
-					<string>(g3_INT)0</string>
+					<string>(g3_INT)1</string>
 					<key>(g3_ASCII)pixelFilters</key>
 					<array>
 						<dict/>
@@ -20395,7 +20457,7 @@
 					<key>(g3_ASCII)soundOutBalance</key>
 					<string>(g3_FLOAT)0.500000</string>
 					<key>(g3_ASCII)soundOutLevel</key>
-					<string>(g3_FLOAT)1.000000</string>
+					<string>(g3_INT)1</string>
 					<key>(g3_ASCII)soundOutLinkToAlphaAndCrossfader</key>
 					<string>(g3_INT)1</string>
 					<key>(g3_ASCII)syphonAppName</key>
@@ -38144,9 +38206,17 @@
 		<dict/>
 	</array>
 	<key>(g3_ASCII)modul8</key>
-	<string>(g3_FLOAT)2.710000</string>
+	<string>(g3_FLOAT)2.900000</string>
 	<key>(g3_ASCII)modules_serial</key>
 	<dict>
+		<key>(LL) BPM Bar</key>
+		<dict>
+			<key>(g3_ASCII)-1</key>
+			<dict>
+				<key>(g3_ASCII)__AUTO_SERIALIZE</key>
+				<dict/>
+			</dict>
+		</dict>
 		<key>(LL) BootWithSettings</key>
 		<dict>
 			<key>(g3_ASCII)-1</key>
@@ -38157,6 +38227,21 @@
 		</dict>
 		<key>(LL) DMX2MIDI</key>
 		<dict/>
+		<key>(LL) OSC Spark Listener</key>
+		<dict/>
+		<key>(LL) Post Colorize Picker (layer)</key>
+		<dict>
+			<key>(g3_ASCII)-1</key>
+			<dict>
+				<key>(g3_ASCII)__AUTO_SERIALIZE</key>
+				<dict>
+					<key>(g3_ASCII)80</key>
+					<string>(g3_INT)1</string>
+					<key>(g3_ASCII)81</key>
+					<string>(g3_INT)0</string>
+				</dict>
+			</dict>
+		</dict>
 		<key>(LL) SelectedLayerToMidi</key>
 		<dict>
 			<key>(g3_ASCII)-1</key>
@@ -38182,14 +38267,234 @@
 				</dict>
 			</dict>
 		</dict>
+		<key>(LL) WonderStudio</key>
+		<dict>
+			<key>(g3_ASCII)43</key>
+			<dict>
+				<key>(g3_ASCII)__AUTO_SERIALIZE</key>
+				<dict>
+					<key>(g3_ASCII)12</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)18</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)19_0</key>
+					<string>(g3_FLOAT)0.000000</string>
+					<key>(g3_ASCII)20_0</key>
+					<string>(g3_FLOAT)0.500000</string>
+					<key>(g3_ASCII)21_0</key>
+					<string>(g3_FLOAT)0.500000</string>
+				</dict>
+			</dict>
+			<key>(g3_ASCII)44</key>
+			<dict>
+				<key>(g3_ASCII)__AUTO_SERIALIZE</key>
+				<dict>
+					<key>(g3_ASCII)12</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)18</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)19_0</key>
+					<string>(g3_FLOAT)0.000000</string>
+					<key>(g3_ASCII)20_0</key>
+					<string>(g3_FLOAT)0.500000</string>
+					<key>(g3_ASCII)21_0</key>
+					<string>(g3_FLOAT)0.500000</string>
+				</dict>
+			</dict>
+		</dict>
+		<key>(LL) YOLONATOR (master)</key>
+		<dict>
+			<key>(g3_ASCII)-1</key>
+			<dict>
+				<key>(g3_ASCII)__AUTO_SERIALIZE</key>
+				<dict>
+					<key>(g3_ASCII)10</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)11</key>
+					<string>(g3_INT)1</string>
+					<key>(g3_ASCII)2</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)24</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)26</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)32</key>
+					<string>(g3_INT)1</string>
+					<key>(g3_ASCII)34</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)35</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)36_0</key>
+					<string>(g3_FLOAT)3.000000</string>
+					<key>(g3_ASCII)39</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)7</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)8</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)9</key>
+					<string>(g3_INT)0</string>
+				</dict>
+			</dict>
+		</dict>
+		<key>(LL) YOLOTRON (layer)</key>
+		<dict>
+			<key>(g3_ASCII)-1</key>
+			<dict>
+				<key>(g3_ASCII)__AUTO_SERIALIZE</key>
+				<dict>
+					<key>(g3_ASCII)10</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)11</key>
+					<string>(g3_INT)1</string>
+					<key>(g3_ASCII)2</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)24</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)39</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)7</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)8</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)9</key>
+					<string>(g3_INT)0</string>
+				</dict>
+			</dict>
+		</dict>
 		<key>(LT) Clip Control v0 9</key>
-		<dict/>
+		<dict>
+			<key>(g3_ASCII)43</key>
+			<dict>
+				<key>(g3_ASCII)__AUTO_SERIALIZE</key>
+				<dict>
+					<key>(g3_ASCII)110</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)31</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)33</key>
+					<string>(g3_INT)1</string>
+					<key>(g3_ASCII)34</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)35</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)36</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)37</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)38</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)39</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)40</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)41</key>
+					<string>(g3_INT)1</string>
+					<key>(g3_ASCII)42</key>
+					<string>(g3_INT)1</string>
+					<key>(g3_ASCII)52_0</key>
+					<string>(g3_FLOAT)0.000000</string>
+					<key>(g3_ASCII)56</key>
+					<string>(g3_INT)1</string>
+					<key>(g3_ASCII)59</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)83_0</key>
+					<string>(g3_FLOAT)0.250000</string>
+				</dict>
+			</dict>
+			<key>(g3_ASCII)44</key>
+			<dict>
+				<key>(g3_ASCII)__AUTO_SERIALIZE</key>
+				<dict>
+					<key>(g3_ASCII)110</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)31</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)33</key>
+					<string>(g3_INT)1</string>
+					<key>(g3_ASCII)34</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)35</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)36</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)37</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)38</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)39</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)40</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)41</key>
+					<string>(g3_INT)1</string>
+					<key>(g3_ASCII)42</key>
+					<string>(g3_INT)1</string>
+					<key>(g3_ASCII)52_0</key>
+					<string>(g3_FLOAT)0.000000</string>
+					<key>(g3_ASCII)56</key>
+					<string>(g3_INT)1</string>
+					<key>(g3_ASCII)59</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)83_0</key>
+					<string>(g3_FLOAT)0.250000</string>
+				</dict>
+			</dict>
+		</dict>
 		<key>(LT) Media Panel v1 2 2</key>
-		<dict/>
+		<dict>
+			<key>(g3_ASCII)-1</key>
+			<dict>
+				<key>(g3_ASCII)__AUTO_SERIALIZE</key>
+				<dict>
+					<key>(g3_ASCII)130</key>
+					<string>Image</string>
+					<key>(g3_ASCII)180</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)186</key>
+					<string>VID Round</string>
+					<key>(g3_ASCII)189</key>
+					<string>VID Box</string>
+					<key>(g3_ASCII)192</key>
+					<string>MEDIA SET 6</string>
+					<key>(g3_ASCII)195</key>
+					<string>MEDIA SET 5</string>
+					<key>(g3_ASCII)198</key>
+					<string>MEDIA SET 4</string>
+					<key>(g3_ASCII)204</key>
+					<string>MEDIA SET 8</string>
+					<key>(g3_ASCII)207</key>
+					<string>MEDIA SET 7</string>
+					<key>(g3_ASCII)68</key>
+					<string>(g3_INT)1</string>
+					<key>(g3_ASCII)69</key>
+					<string>(g3_INT)0</string>
+				</dict>
+			</dict>
+		</dict>
 		<key>(LT) Quick FX v1 1</key>
 		<dict/>
 		<key>(LT) live monitor v4 7</key>
 		<dict/>
+		<key>(at) BPM (global)</key>
+		<dict>
+			<key>(g3_ASCII)-1</key>
+			<dict>
+				<key>(g3_ASCII)BPM</key>
+				<string>(g3_INT)120</string>
+				<key>(g3_ASCII)BPM_SPEED</key>
+				<string>(g3_INT)2</string>
+				<key>(g3_ASCII)__AUTO_SERIALIZE</key>
+				<dict>
+					<key>(g3_ASCII)69</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)78</key>
+					<string>(g3_INT)1</string>
+					<key>(g3_ASCII)92</key>
+					<string>(g3_INT)0</string>
+				</dict>
+			</dict>
+		</dict>
 		<key>(at) BPM Router (Gener8)</key>
 		<dict/>
 		<key>(at) Filter (Gener8)</key>
@@ -38209,6 +38514,12 @@
 		<key>(at) LFO Router (master)</key>
 		<dict/>
 		<key>(at) Sound Router (Gener8)</key>
+		<dict/>
+		<key>(dctv) Complementarizer</key>
+		<dict/>
+		<key>(i) Jolt</key>
+		<dict/>
+		<key>(lpn) FPS (tool)</key>
 		<dict/>
 		<key>(st) Preview Window Controller v1 2</key>
 		<dict>
@@ -38255,7 +38566,7 @@
 					<key>(g3_ASCII)3</key>
 					<string>(g3_INT)0</string>
 					<key>(g3_ASCII)33_0</key>
-					<string>(g3_FLOAT)0.000000</string>
+					<string>(g3_FLOAT)1.000000</string>
 					<key>(g3_ASCII)4</key>
 					<string>(g3_INT)0</string>
 					<key>(g3_ASCII)44</key>
@@ -38276,6 +38587,8 @@
 		<key>120 eq paint 16:9</key>
 		<dict/>
 		<key>120 eq paint circle 16:9</key>
+		<dict/>
+		<key>120 polygons</key>
 		<dict/>
 		<key>BPM (global)</key>
 		<dict>
@@ -38314,26 +38627,229 @@
 		<key>DMX fixture (dmx)</key>
 		<dict/>
 		<key>Direct Event Viewer (tool)</key>
-		<dict/>
+		<dict>
+			<key>(g3_ASCII)-1</key>
+			<dict>
+				<key>(g3_ASCII)__AUTO_SERIALIZE</key>
+				<dict>
+					<key>(g3_ASCII)10</key>
+					<string></string>
+					<key>(g3_ASCII)15</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)18</key>
+					<string></string>
+				</dict>
+			</dict>
+		</dict>
 		<key>Filter (layer)</key>
-		<dict/>
+		<dict>
+			<key>(g3_ASCII)43</key>
+			<dict>
+				<key>(g3_ASCII)ANIM</key>
+				<array>
+					<dict/>
+					<dict/>
+					<dict/>
+					<dict/>
+				</array>
+				<key>(g3_ASCII)ENABLED PASSES</key>
+				<array>
+					<string>(g3_INT)1</string>
+					<string>(g3_INT)1</string>
+					<string>(g3_INT)1</string>
+					<string>(g3_INT)1</string>
+				</array>
+				<key>(g3_ASCII)FILTERS</key>
+				<array>
+					<dict/>
+					<dict/>
+					<dict/>
+					<dict/>
+				</array>
+				<key>(g3_ASCII)__AUTO_SERIALIZE</key>
+				<dict>
+					<key>(g3_ASCII)755</key>
+					<string>(g3_INT)0</string>
+				</dict>
+			</dict>
+			<key>(g3_ASCII)44</key>
+			<dict>
+				<key>(g3_ASCII)ANIM</key>
+				<array>
+					<dict/>
+					<dict/>
+					<dict/>
+					<dict/>
+				</array>
+				<key>(g3_ASCII)ENABLED PASSES</key>
+				<array>
+					<string>(g3_INT)1</string>
+					<string>(g3_INT)1</string>
+					<string>(g3_INT)1</string>
+					<string>(g3_INT)1</string>
+				</array>
+				<key>(g3_ASCII)FILTERS</key>
+				<array>
+					<dict/>
+					<dict/>
+					<dict/>
+					<dict/>
+				</array>
+				<key>(g3_ASCII)__AUTO_SERIALIZE</key>
+				<dict>
+					<key>(g3_ASCII)755</key>
+					<string>(g3_INT)0</string>
+				</dict>
+			</dict>
+		</dict>
 		<key>LB - Media In Layer From MIDI Notes</key>
 		<dict/>
 		<key>Mask (global)</key>
-		<dict/>
+		<dict>
+			<key>(g3_ASCII)-1</key>
+			<dict>
+				<key>(g3_ASCII)__AUTO_SERIALIZE</key>
+				<dict>
+					<key>(g3_ASCII)100</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)102</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)107</key>
+					<string>(g3_INT)1</string>
+					<key>(g3_ASCII)118</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)119</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)120</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)126_0</key>
+					<string>(g3_FLOAT)0.000000</string>
+					<key>(g3_ASCII)127_0</key>
+					<string>(g3_FLOAT)0.000000</string>
+					<key>(g3_ASCII)128_0</key>
+					<string>(g3_FLOAT)0.000000</string>
+					<key>(g3_ASCII)130_0</key>
+					<string>(g3_FLOAT)1.000000</string>
+					<key>(g3_ASCII)133_0</key>
+					<string>(g3_FLOAT)1.000000</string>
+					<key>(g3_ASCII)135_0</key>
+					<string>(g3_FLOAT)1.000000</string>
+					<key>(g3_ASCII)143</key>
+					<string>(g3_INT)1</string>
+					<key>(g3_ASCII)154</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)155</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)156</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)157</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)158</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)159</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)160</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)161</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)162</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)163</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)164</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)165</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)166</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)167</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)168</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)169</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)170</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)171</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)172</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)173</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)174</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)175</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)3</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)35_0</key>
+					<string>(g3_FLOAT)0.000000</string>
+					<key>(g3_ASCII)35_1</key>
+					<string>(g3_FLOAT)0.000000</string>
+					<key>(g3_ASCII)39_0</key>
+					<string>(g3_FLOAT)1.000000</string>
+					<key>(g3_ASCII)40_0</key>
+					<string>(g3_FLOAT)1.000000</string>
+					<key>(g3_ASCII)41_0</key>
+					<string>(g3_FLOAT)1.000000</string>
+					<key>(g3_ASCII)90</key>
+					<string>NORMAL</string>
+					<key>(g3_ASCII)91_0</key>
+					<string>(g3_FLOAT)1.000000</string>
+					<key>(g3_ASCII)92_0</key>
+					<string>(g3_FLOAT)1.000000</string>
+					<key>(g3_ASCII)95</key>
+					<string>(g3_INT)0</string>
+				</dict>
+			</dict>
+		</dict>
 		<key>MotionPath (layer)</key>
 		<dict/>
+		<key>Movie Random Frame (all)</key>
+		<dict/>
 		<key>Movie Scratch (layer)</key>
+		<dict/>
+		<key>Movie Time (layer)</key>
 		<dict/>
 		<key>Network (global)</key>
 		<dict/>
 		<key>OSC (global)</key>
+		<dict>
+			<key>(g3_ASCII)-1</key>
+			<dict>
+				<key>(g3_ASCII)__AUTO_SERIALIZE</key>
+				<dict>
+					<key>(g3_ASCII)47</key>
+					<string>(g3_INT)1</string>
+					<key>(g3_ASCII)48</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)57</key>
+					<string>(g3_INT)0</string>
+					<key>(g3_ASCII)58</key>
+					<string>localhost</string>
+				</dict>
+			</dict>
+		</dict>
+		<key>OSC native (global)</key>
 		<dict/>
 		<key>Painter (layer)</key>
 		<dict/>
 		<key>Perspective Transform</key>
 		<dict/>
 		<key>Post Colorize Picker (layer)</key>
+		<dict>
+			<key>(g3_ASCII)43</key>
+			<dict>
+				<key>(g3_ASCII)__AUTO_SERIALIZE</key>
+				<dict/>
+			</dict>
+			<key>(g3_ASCII)44</key>
+			<dict>
+				<key>(g3_ASCII)__AUTO_SERIALIZE</key>
+				<dict/>
+			</dict>
+		</dict>
+		<key>RandomFrame (layer)</key>
 		<dict>
 			<key>(g3_ASCII)43</key>
 			<dict>
@@ -38387,11 +38903,32 @@
 		<dict/>
 		<key>Two way MIDI (Udart)</key>
 		<dict/>
-		<key>Zoom Preview (ui)</key>
+		<key>Wave Transformer Patch (layer)</key>
 		<dict/>
+		<key>Zoom Preview (ui)</key>
+		<dict>
+			<key>(g3_ASCII)-1</key>
+			<dict>
+				<key>(g3_ASCII)__AUTO_SERIALIZE</key>
+				<dict>
+					<key>(g3_ASCII)1_0</key>
+					<string>(g3_FLOAT)50.000000</string>
+					<key>(g3_ASCII)2</key>
+					<string>(g3_INT)1</string>
+					<key>(g3_ASCII)6_0</key>
+					<string>(g3_FLOAT)50.000000</string>
+				</dict>
+			</dict>
+		</dict>
 	</dict>
 	<key>(g3_ASCII)modules_state</key>
 	<array>
+		<dict>
+			<key>(g3_ASCII)name</key>
+			<string>(at) BPM (global)</string>
+			<key>(g3_ASCII)state</key>
+			<string>(g3_ASCII)Playing</string>
+		</dict>
 		<dict>
 			<key>(g3_ASCII)name</key>
 			<string>(at) BPM Router (Gener8)</string>
@@ -38454,7 +38991,25 @@
 		</dict>
 		<dict>
 			<key>(g3_ASCII)name</key>
+			<string>(dctv) Complementarizer</string>
+			<key>(g3_ASCII)state</key>
+			<string>(g3_ASCII)Stopped</string>
+		</dict>
+		<dict>
+			<key>(g3_ASCII)name</key>
+			<string>(i) Jolt</string>
+			<key>(g3_ASCII)state</key>
+			<string>(g3_ASCII)Stopped</string>
+		</dict>
+		<dict>
+			<key>(g3_ASCII)name</key>
 			<string>(LL) BootWithSettings</string>
+			<key>(g3_ASCII)state</key>
+			<string>(g3_ASCII)Playing</string>
+		</dict>
+		<dict>
+			<key>(g3_ASCII)name</key>
+			<string>(LL) BPM Bar</string>
 			<key>(g3_ASCII)state</key>
 			<string>(g3_ASCII)Playing</string>
 		</dict>
@@ -38466,7 +39021,13 @@
 		</dict>
 		<dict>
 			<key>(g3_ASCII)name</key>
-			<string>(LL) SelectedLayerToMidi</string>
+			<string>(LL) OSC Spark Listener</string>
+			<key>(g3_ASCII)state</key>
+			<string>(g3_ASCII)Stopped</string>
+		</dict>
+		<dict>
+			<key>(g3_ASCII)name</key>
+			<string>(LL) Post Colorize Picker (layer)</string>
 			<key>(g3_ASCII)state</key>
 			<string>(g3_ASCII)Playing</string>
 		</dict>
@@ -38478,9 +39039,33 @@
 		</dict>
 		<dict>
 			<key>(g3_ASCII)name</key>
-			<string>(LT) Clip Control v0 9</string>
+			<string>(LL) WonderStudio</string>
+			<key>(g3_ASCII)state</key>
+			<string>(g3_ASCII)Playing</string>
+		</dict>
+		<dict>
+			<key>(g3_ASCII)name</key>
+			<string>(LL) YOLONATOR (master)</string>
+			<key>(g3_ASCII)state</key>
+			<string>(g3_ASCII)Playing</string>
+		</dict>
+		<dict>
+			<key>(g3_ASCII)name</key>
+			<string>(LL) YOLOTRON (layer)</string>
+			<key>(g3_ASCII)state</key>
+			<string>(g3_ASCII)Playing</string>
+		</dict>
+		<dict>
+			<key>(g3_ASCII)name</key>
+			<string>(lpn) FPS (tool)</string>
 			<key>(g3_ASCII)state</key>
 			<string>(g3_ASCII)Stopped</string>
+		</dict>
+		<dict>
+			<key>(g3_ASCII)name</key>
+			<string>(LT) Clip Control v0 9</string>
+			<key>(g3_ASCII)state</key>
+			<string>(g3_ASCII)Playing</string>
 		</dict>
 		<dict>
 			<key>(g3_ASCII)name</key>
@@ -38492,7 +39077,7 @@
 			<key>(g3_ASCII)name</key>
 			<string>(LT) Media Panel v1 2 2</string>
 			<key>(g3_ASCII)state</key>
-			<string>(g3_ASCII)Stopped</string>
+			<string>(g3_ASCII)Playing</string>
 		</dict>
 		<dict>
 			<key>(g3_ASCII)name</key>
@@ -38526,9 +39111,15 @@
 		</dict>
 		<dict>
 			<key>(g3_ASCII)name</key>
+			<string>120 polygons</string>
+			<key>(g3_ASCII)state</key>
+			<string>(g3_ASCII)Stopped</string>
+		</dict>
+		<dict>
+			<key>(g3_ASCII)name</key>
 			<string>BPM (global)</string>
 			<key>(g3_ASCII)state</key>
-			<string>(g3_ASCII)Playing</string>
+			<string>(g3_ASCII)Stopped</string>
 		</dict>
 		<dict>
 			<key>(g3_ASCII)name</key>
@@ -38564,7 +39155,7 @@
 			<key>(g3_ASCII)name</key>
 			<string>Direct Event Viewer (tool)</string>
 			<key>(g3_ASCII)state</key>
-			<string>(g3_ASCII)Stopped</string>
+			<string>(g3_ASCII)Playing</string>
 		</dict>
 		<dict>
 			<key>(g3_ASCII)name</key>
@@ -38576,7 +39167,7 @@
 			<key>(g3_ASCII)name</key>
 			<string>Filter (layer)</string>
 			<key>(g3_ASCII)state</key>
-			<string>(g3_ASCII)Stopped</string>
+			<string>(g3_ASCII)Playing</string>
 		</dict>
 		<dict>
 			<key>(g3_ASCII)name</key>
@@ -38588,7 +39179,7 @@
 			<key>(g3_ASCII)name</key>
 			<string>Mask (global)</string>
 			<key>(g3_ASCII)state</key>
-			<string>(g3_ASCII)Stopped</string>
+			<string>(g3_ASCII)Playing</string>
 		</dict>
 		<dict>
 			<key>(g3_ASCII)name</key>
@@ -38598,7 +39189,19 @@
 		</dict>
 		<dict>
 			<key>(g3_ASCII)name</key>
+			<string>Movie Random Frame (all)</string>
+			<key>(g3_ASCII)state</key>
+			<string>(g3_ASCII)Stopped</string>
+		</dict>
+		<dict>
+			<key>(g3_ASCII)name</key>
 			<string>Movie Scratch (layer)</string>
+			<key>(g3_ASCII)state</key>
+			<string>(g3_ASCII)Stopped</string>
+		</dict>
+		<dict>
+			<key>(g3_ASCII)name</key>
+			<string>Movie Time (layer)</string>
 			<key>(g3_ASCII)state</key>
 			<string>(g3_ASCII)Stopped</string>
 		</dict>
@@ -38611,6 +39214,12 @@
 		<dict>
 			<key>(g3_ASCII)name</key>
 			<string>OSC (global)</string>
+			<key>(g3_ASCII)state</key>
+			<string>(g3_ASCII)Playing</string>
+		</dict>
+		<dict>
+			<key>(g3_ASCII)name</key>
+			<string>OSC native (global)</string>
 			<key>(g3_ASCII)state</key>
 			<string>(g3_ASCII)Stopped</string>
 		</dict>
@@ -38629,6 +39238,12 @@
 		<dict>
 			<key>(g3_ASCII)name</key>
 			<string>Post Colorize Picker (layer)</string>
+			<key>(g3_ASCII)state</key>
+			<string>(g3_ASCII)Stopped</string>
+		</dict>
+		<dict>
+			<key>(g3_ASCII)name</key>
+			<string>RandomFrame (layer)</string>
 			<key>(g3_ASCII)state</key>
 			<string>(g3_ASCII)Playing</string>
 		</dict>
@@ -38654,7 +39269,7 @@
 			<key>(g3_ASCII)name</key>
 			<string>Syphon Input (layer)</string>
 			<key>(g3_ASCII)state</key>
-			<string>(g3_ASCII)Paused</string>
+			<string>(g3_ASCII)Stopped</string>
 		</dict>
 		<dict>
 			<key>(g3_ASCII)name</key>
@@ -38670,9 +39285,15 @@
 		</dict>
 		<dict>
 			<key>(g3_ASCII)name</key>
-			<string>Zoom Preview (ui)</string>
+			<string>Wave Transformer Patch (layer)</string>
 			<key>(g3_ASCII)state</key>
 			<string>(g3_ASCII)Stopped</string>
+		</dict>
+		<dict>
+			<key>(g3_ASCII)name</key>
+			<string>Zoom Preview (ui)</string>
+			<key>(g3_ASCII)state</key>
+			<string>(g3_ASCII)Playing</string>
 		</dict>
 	</array>
 	<key>(g3_ASCII)v255Ready</key>
