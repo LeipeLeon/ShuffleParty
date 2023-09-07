@@ -1,0 +1,58 @@
+Select a MIDI input...
+0) Apple Inc. IAC Driver
+2) Apple Inc. IAC Driver
+4) Generic USB MIDI Device
+> 2
+
+Select a MIDI output...
+1) Apple Inc. IAC Driver
+3) Apple Inc. IAC Driver
+5) Generic USB MIDI Device
+> 1
+
+[1419101145.121781] Fade Shuffle Out
+[1419101148.804569] Fade Shuffle In
+[1419101189.444959] Fade Shuffle Out
+[1419101252.500639] Fade Shuffle In
+[1419101499.852235] Fade Shuffle Out
+[1419101562.9324448] Fade Shuffle In
+[1419101773.300169] Fade Shuffle Out
+[1419101836.363203] Fade Shuffle In
+[1419102019.7129128] Fade Shuffle Out
+[1419102438.980612] Fade Shuffle In
+[1419102779.665568] Fade Shuffle Out
+[1419102902.711723] Fade Shuffle In
+[1419103064.397632] Fade Shuffle Out
+[1419104267.365551] Fade Shuffle In
+[1419104528.7796931] Fade Shuffle Out
+[1419105731.876317] Fade Shuffle In
+[1419105950.624667] Fade Shuffle Out
+[1419107153.589246] Fade Shuffle In
+[1419107347.54543] Fade Shuffle Out
+[1419108550.533331] Fade Shuffle In
+[1419108878.363177] Fade Shuffle Out
+[1419110081.348272] Fade Shuffle In
+[1419110290.840518] Fade Shuffle Out
+[1419111493.817788] Fade Shuffle In
+[1419111688.419125] Fade Shuffle Out
+[1419112891.401762] Fade Shuffle In
+[1419113148.072161] Fade Shuffle Out
+[1419114351.064339] Fade Shuffle In
+[1419114573.088186] Fade Shuffle Out
+[1419115776.091223] Fade Shuffle In
+[1419116062.730334] Fade Shuffle Out
+[1419117265.7106261] Fade Shuffle In
+[1419117515.467566] Fade Shuffle Out
+[1419118718.453944] Fade Shuffle In
+[1419118875.123944] Fade Shuffle Out
+[1419120078.1082911] Fade Shuffle In
+[1419120315.788335] Fade Shuffle Out
+[1419121518.756157] Fade Shuffle In
+[1419121752.331294] Fade Shuffle Out
+[1419122955.304724] Fade Shuffle In
+[1419123234.6470459] Fade Shuffle Out
+[1419124437.617056] Fade Shuffle In
+[1419124678.187721] Fade Shuffle Out
+
+
+21x shuffle
