@@ -1,37 +1,69 @@
-SHUFFLEPARTY
-============
+# SHUFFLEPARTY
 
-SYNOPSIS
---------
+## SYNOPSIS
 
 - Each DJ get's an amount of time
-- When the timer expires the output is forced to play a shuffle track and the dj get's faded out
+- When the timer expires the dj get's faded out and automagically a shuffle track begins to play.
+- When tthe shuffle track finishes (or the playhead[^playhead] passes a cue point[^cuepoint])
 
-USAGE
------
 
-- Traktor:
-  - Set deck A to live input and set it to the sound from the DJ mixer
-  - Set a start and fade-out cue on each track you want to use to automagically crossfade back to live input
+## Implementation
 
-- brew install watch
+Signalling
 
-    `watch -n1200 kill -USR1 ``ps waux | grep 'ruby ./player.rbx' | grep -v grep | awk '{print $2}'`
+![](shuffle-timing.png)
 
-Commands:
+```json
+// https://wavedrom.com/editor.html
+{
+  "signal": [
+    {},
+    [
+      "Perception",
+      {
+        "wave": "==..=..=..=.|",
+        "data": "DJ SHUFFLE DJ SHUFFLE DJ SHUFFLE DJ"
+      },
+      {
+        "name": "AUDIO",
+        "wave": "54..5..4..5.|",
+        "data": "💿 💾 💿 💾 💿 💾 💿"
+      },
+      {
+        "name": "LIGHT",
+        "wave": "78..7..8..7.|",
+        "data": "🚨 🪩 🚨 🪩 🚨 🪩 🚨"
+      },
+      {
+        "name": "SCREEN",
+        "wave": "36..3..6..3.|",
+        "data": "10:00 🪩 10:00 🪩 10:00 🪩 10:00"
+      }
+    ],
+    {},
+    [
+      "PULSES",
+      //{ "name": "PULSE", "wave": "lL..L..L..L.|"},
+      { "name": "TIMER_STATE", "wave": "hL..h..L..h.|" },
+      { "name": "TRACK_STATE", "wave": "Lh..L.h..L.|" },
+      { "name": "TIMER_DONE", "wave": "0Pl....Pl...|" },
+      { "name": "TRACK_DONE", "wave": "0...Pl....Pl|" },
+    ],
+    {},
+    [
+      "AUDIO",
+      { "name": "MP3", "wave": "04..0..4..0.|" },
+      { "name": "DJ", "wave": "50..5..0..5.|" }
+    ],
+    {},
+    [
+      "DMX",
+      { "name": "SPOT", "wave": "08..0..8..0.|" },
+      { "name": "FX", "wave": "70..7..0..7.|" }
+    ]
+  ]
+}
+````
 
-    ./player_midi.rbx
-
-    DEBUG=true ./player.rbx
-
-    Select a MIDI input...
-    0) Apple Inc. IAC-besturingsbestand
-    2) Native Instruments Traktor Audio 10
-    > 0
-
-    Select a MIDI output...
-    1) Apple Inc. IAC-besturingsbestand
-    3) Native Instruments Traktor Audio 10
-    > 1
-
-Developed and Tested on OSX, might work on Windows
+[^cuepoint]: A marker in the audio timeline which indicates a important moment. Like hthe hotques on a Pioneer CDJ
+[^playhead]: The position of the player
