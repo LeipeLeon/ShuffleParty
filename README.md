@@ -1,7 +1,7 @@
 # Shuffle Partey!
 ![](de-shuffle.jpg)
 
-An concept conceived by [De Perifeer](https://DePerifeer.org) & [Wendbaar.nl](https://Wendbaar.nl)
+An concept conceived by [De Perifeer](https://perifeer.org/) & [Wendbaar.nl](https://www.wendbaar.nl/)
 
 ## Synopsis
 
