@@ -1,48 +1,70 @@
 # Shuffle Partey!
+
 ![](de-shuffle.jpg)
 
-An concept conceived by [De Perifeer](https://perifeer.org/) & [Wendbaar.nl](https://www.wendbaar.nl/)
+A concept conceived by [De Perifeer](https://perifeer.org/) & [Wendbaar.nl](https://www.wendbaar.nl/)
 
-## Synopsis
+## What Is It?
 
+A DJ rotation party where each DJ gets a fixed time slot (e.g. 20 minutes). When time's up, the system automatically takes over: it fades out the DJ, plays a "shuffle" transition track with its own light show, and then hands the stage to the next DJ. No MC needed — the system runs the transitions.
 
-### Setup:
-- There are some light effects
-  - A mirrorball w/ pin spots
-  - Some effects which respond to music
-- There is a screen/ Beamer which displays a Timer
-- There is a DJ set
-- Each DJ get's an alloted amount of time (like 20 minutes).
+## The Experience
+
+**During a DJ set:** The audience sees a countdown timer on screen. The DJ plays their set. Lighting effects respond to the music. The mirrorball pin spots are off.
+
+**When time runs out (the "Shuffle" moment):** The DJ's audio fades out automatically. A pre-loaded shuffle track starts playing. The screen switches from the timer to the Shuffle logo. Lighting shifts — music-reactive effects go dark, mirrorball pin spots come on. This is the moment the next DJ takes position.
+
+**When the shuffle track ends:** The shuffle track audio fades out. The DJ's audio channel opens back up. The timer resets and starts counting down again. Lighting returns to music-reactive mode. The next DJ is live.
+
+## The State Machine
+
+```mermaid
+flowchart LR
+   DJ_Set -- "timer hits 00:00" --> Shuffle_Transition -- "track ends or cue point reached" --> DJ_Set
+```
+
+The system has two states:
+
+| | **DJ Set** | **Shuffle Transition** |
+|---|---|---|
+| **Audio** | DJ channel open, shuffle track muted | DJ channel faded out, shuffle track playing |
+| **Screen** | Countdown timer | Shuffle logo |
+| **Lighting** | Music-reactive FX on, pin spots off | FX off, mirrorball pin spots on |
+| **Trigger to exit** | Timer reaches `00:00` | Shuffle track ends (or playhead[^playhead] passes a cue point[^cuepoint]) |
+
+## Signal Routing
+
+![doc/shuffle-timing.json](doc/shuffle-timing.png)
+
+The system coordinates four output channels, driven by two state signals (`TIMER_STATE` and `TRACK_STATE`) and two pulse events (`TIMER_DONE` and `TRACK_DONE`):
+
+- **Audio — DJ channel:** Physical fader or digital potentiometer (e.g. MCP42010) controlling the DJ mixer input. Open during DJ set, faded out during shuffle.
+- **Audio — Shuffle track:** An MP3 player (software or hardware) that plays the transition track. Triggered by `TIMER_DONE`.
+- **DMX — FX lights:** Music-reactive lighting. On during DJ set, off during shuffle.
+- **DMX — Pin spots:** Mirrorball spots. Off during DJ set, on during shuffle.
+- **Screen:** A display/beamer showing either the countdown timer or the shuffle logo.
 
 ![](doc/shuffle-setup.png)
 
-### Scenario
+### Open Questions
 
-```mermaid
-flowchart
-   Timer -- 00:00 --> ShuffleSong -- Song done --> Timer
-```
+- [ ] How does the system physically control the DJ audio? Options: digital potentiometer on the mixer line (hardware), or a signal telling the DJ to stop (honor system)?
+- [ ] Is the shuffle track playlist randomized or fixed order?
+- [ ] Who configures the DJ order and set lengths — is there an operator interface?
+- [ ] Can an operator override the timer (pause, extend, skip)?
+- [ ] Does the system need to handle the first DJ start and last DJ end differently?
 
-- There is a timer displayed on a screen which counts down from say `20:00` to `00:00`
-- When the timer expires:
-  - the DJ audio fades out and a shuffle track begins to play.
-  - the timer on screen fades out and the shuffle logo appears.
-- When the shuffle track finishes (or the playhead[^playhead] passes a cue point[^cuepoint])
+## Implementation Options
 
+| | [TouchDesigner](https://derivative.ca/) | [DragonRuby](https://dragonruby.org/) |
+|---|---|---|
+| **Approach** | Visual/node-based programming | Code-first (Ruby) |
+| **Runs on** | Mac/Windows | Raspberry Pi, Mac, Windows |
+| **Audio** | Built-in audio playback + analysis | Needs external audio library |
+| **DMX** | Via plugins or OSC | Via serial/USB DMX adapter |
+| **Screen output** | Native — designed for visuals | Game engine — capable but DIY |
+| **Learning curve** | Low for visual thinkers | Low for programmers |
+| **Best for** | Quick prototyping, show visuals | Embedded/standalone deployment |
 
-## Implementation
-
-A picture says more than 1001 words:
-
-![](doc/shuffle-timing.png)
-
-### Possible tools to develop this system
-
-- [Touch designer](https://derivative.ca/)
-  - visual creators minded, e.g. maybe doable w/o programming knowledge
-  - Used to command big rigs (like deadmau5)
-- [Dragon Ruby](https://dragonruby.org/)
-  - Embedded ruby Game engine which can run on a Raspberry Pi
-
-[^cuepoint]: A defined position marker that belongs to a track, like the hotques on a Pioneer CDJ.
+[^cuepoint]: A defined position marker that belongs to a track, like the hot cues on a Pioneer CDJ.
 [^playhead]: The current playback position in the audio player
