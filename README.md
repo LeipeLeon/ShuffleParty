@@ -38,8 +38,8 @@ The system has two states:
 
 The system coordinates four output channels, driven by two state signals (`TIMER_STATE` and `TRACK_STATE`) and two pulse events (`TIMER_DONE` and `TRACK_DONE`):
 
-- **Audio — DJ channel:** Physical fader or digital potentiometer (e.g. MCP42010) controlling the DJ mixer input. Open during DJ set, faded out during shuffle.
-- **Audio — Shuffle track:** An MP3 player (software or hardware) that plays the transition track. Triggered by `TIMER_DONE`.
+- **Audio — DJ channel:** Controlled via MIDI on a digital mixer (e.g. Behringer XR12). The system sends MIDI CC messages to fade the DJ channel down during shuffle and back up when the next set starts.
+- **Audio — Shuffle track:** An MP3 player (software or hardware) routed to a separate mixer channel. Triggered by `TIMER_DONE`. Also faded via MIDI.
 - **DMX — FX lights:** Music-reactive lighting. On during DJ set, off during shuffle.
 - **DMX — Pin spots:** Mirrorball spots. Off during DJ set, on during shuffle.
 - **Screen:** A display/beamer showing either the countdown timer or the shuffle logo.
@@ -48,8 +48,8 @@ The system coordinates four output channels, driven by two state signals (`TIMER
 
 ### Open Questions
 
-- [ ] How does the system physically control the DJ audio? Options: digital potentiometer on the mixer line (hardware), or a signal telling the DJ to stop (honor system)?
-- [ ] Is the shuffle track playlist randomized or fixed order?
+- [x] ~~How does the system physically control the DJ audio?~~ Via MIDI to a digital mixer (e.g. Behringer XR12).
+- [x] ~~Is the shuffle track playlist randomized or fixed order?~~ Randomized.
 - [ ] Who configures the DJ order and set lengths — is there an operator interface?
 - [ ] Can an operator override the timer (pause, extend, skip)?
 - [ ] Does the system need to handle the first DJ start and last DJ end differently?
