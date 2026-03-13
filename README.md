@@ -6,13 +6,13 @@ A concept conceived by [De Perifeer](https://perifeer.org/) & [Wendbaar.nl](http
 
 ## What Is It?
 
-A DJ rotation party where each DJ gets a fixed time slot (e.g. 20 minutes). When time's up, the system automatically takes over: it fades out the DJ, plays a "shuffle" transition track with its own light show, and then hands the stage to the next DJ. No MC needed — the system runs the transitions.
+A DJ rotation party where each DJ gets a fixed time slot (e.g. 20 minutes). When time's up, the system automatically takes over: it fades out the DJ, plays a random "shuffle" transition track with its own light show, and then hands the stage to the next DJ. No MC needed, no operator needed — the system runs fully autonomously once started. Every DJ gets the same cycle, first to last.
 
 ## The Experience
 
 **During a DJ set:** The audience sees a countdown timer on screen. The DJ plays their set. Lighting effects respond to the music. The mirrorball pin spots are off.
 
-**When time runs out (the "Shuffle" moment):** The DJ's audio fades out automatically. A pre-loaded shuffle track starts playing. The screen switches from the timer to the Shuffle logo. Lighting shifts — music-reactive effects go dark, mirrorball pin spots come on. This is the moment the next DJ takes position.
+**When time runs out (the "Shuffle" moment):** The DJ's audio fades out automatically. A random shuffle track from the playlist starts playing. The screen switches from the timer to the Shuffle logo. Lighting shifts — music-reactive effects go dark, mirrorball pin spots come on. This is the moment the next DJ takes position.
 
 **When the shuffle track ends:** The shuffle track audio fades out. The DJ's audio channel opens back up. The timer resets and starts counting down again. Lighting returns to music-reactive mode. The next DJ is live.
 
@@ -39,20 +39,12 @@ The system has two states:
 The system coordinates four output channels, driven by two state signals (`TIMER_STATE` and `TRACK_STATE`) and two pulse events (`TIMER_DONE` and `TRACK_DONE`):
 
 - **Audio — DJ channel:** Controlled via MIDI on a digital mixer (e.g. Behringer XR12). The system sends MIDI CC messages to fade the DJ channel down during shuffle and back up when the next set starts.
-- **Audio — Shuffle track:** An MP3 player (software or hardware) routed to a separate mixer channel. Triggered by `TIMER_DONE`. Also faded via MIDI.
+- **Audio — Shuffle track:** An MP3 player (software or hardware) routed to a separate mixer channel. A random track is selected from the playlist and triggered by `TIMER_DONE`. Also faded via MIDI.
 - **DMX — FX lights:** Music-reactive lighting. On during DJ set, off during shuffle.
 - **DMX — Pin spots:** Mirrorball spots. Off during DJ set, on during shuffle.
 - **Screen:** A display/beamer showing either the countdown timer or the shuffle logo.
 
 ![](doc/shuffle-setup.png)
-
-### Open Questions
-
-- [x] ~~How does the system physically control the DJ audio?~~ Via MIDI to a digital mixer (e.g. Behringer XR12).
-- [x] ~~Is the shuffle track playlist randomized or fixed order?~~ Randomized.
-- [ ] Who configures the DJ order and set lengths — is there an operator interface?
-- [ ] Can an operator override the timer (pause, extend, skip)?
-- [ ] Does the system need to handle the first DJ start and last DJ end differently?
 
 ## Implementation Options
 
