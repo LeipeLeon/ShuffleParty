@@ -48,16 +48,16 @@ class ShuffleParty:
         self.display = Display(set_duration=CONFIG["set_duration_seconds"])
         self.track_picker = TrackPicker(CONFIG["tracks_dir"])
 
-    def on_timer_expired(self) -> None:
-        """Called when the DJ set countdown reaches 00:00."""
+    def on_timer_expired(self) -> str | None:
+        """Called when the DJ set countdown reaches 00:00. Returns the track to play."""
         if self.state != State.DJ_SET:
-            return
+            return None
         self.state = State.SHUFFLE
         self.mixer.fade_out()
         track = self.track_picker.pick()
         self.display.show_shuffle_logo()
         self.lighting.activate_shuffle()
-        # Audio playback of the shuffle track is handled by TrackPicker/pygame
+        return track
 
     def on_shuffle_track_ended(self) -> None:
         """Called when the shuffle track finishes playing."""
