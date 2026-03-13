@@ -36,5 +36,13 @@ A picture says more than 1001 words:
 
 ![](doc/shuffle-timing.png)
 
+### Possible tools to develop this system
+
+- [Touch designer](https://derivative.ca/)
+  - visual creators minded, e.g. maybe doable w/o programming knowledge
+  - Used to command big rigs (like deadmau5)
+- [Dragon Ruby](https://dragonruby.org/)
+  - Embedded ruby Game engine which can run on a Raspberry Pi
+
 [^cuepoint]: A defined position marker that belongs to a track, like the hotques on a Pioneer CDJ.
 [^playhead]: The current playback position in the audio player
