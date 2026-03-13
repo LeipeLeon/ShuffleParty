@@ -38,8 +38,8 @@ The system has two states:
 
 The system coordinates four output channels, driven by two state signals (`TIMER_STATE` and `TRACK_STATE`) and two pulse events (`TIMER_DONE` and `TRACK_DONE`):
 
-- **Audio — DJ channel:** Controlled via MIDI on a digital mixer (e.g. Behringer XR12). The system sends MIDI CC messages to fade the DJ channel down during shuffle and back up when the next set starts.
-- **Audio — Shuffle track:** An MP3 player (software or hardware) routed to a separate mixer channel. A random track is selected from the playlist and triggered by `TIMER_DONE`. Also faded via MIDI.
+- **Audio — DJ channel:** Controlled via OSC or MIDI on a digital mixer (e.g. Behringer XR12). The XR12 supports both MIDI CC and OSC over WiFi/Ethernet (UDP port 10023). OSC is preferred — no USB MIDI interface needed, just a network connection.
+- **Audio — Shuffle track:** An MP3 player (software or hardware) routed to a separate mixer channel. A random track is selected from the playlist and triggered by `TIMER_DONE`. Also faded via OSC/MIDI.
 - **DMX — FX lights:** Music-reactive lighting. On during DJ set, off during shuffle.
 - **DMX — Pin spots:** Mirrorball spots. Off during DJ set, on during shuffle.
 - **Screen:** A display/beamer showing either the countdown timer or the shuffle logo.
@@ -48,15 +48,31 @@ The system coordinates four output channels, driven by two state signals (`TIMER
 
 ## Implementation Options
 
-| | [TouchDesigner](https://derivative.ca/) | [DragonRuby](https://dragonruby.org/) |
+### Recommended: Python on Raspberry Pi
+
+A single Python process running on a Raspberry Pi covers all requirements:
+
+| Capability | Library | Notes |
 |---|---|---|
-| **Approach** | Visual/node-based programming | Code-first (Ruby) |
-| **Runs on** | Mac/Windows | Raspberry Pi, Mac, Windows |
-| **Audio** | Built-in audio playback + analysis | Needs external audio library |
-| **DMX** | Via plugins or OSC | Via serial/USB DMX adapter |
-| **Screen output** | Native — designed for visuals | Game engine — capable but DIY |
-| **Learning curve** | Low for visual thinkers | Low for programmers |
-| **Best for** | Quick prototyping, show visuals | Embedded/standalone deployment |
+| **Audio playback** | `pygame.mixer` | MP3 playback, fade control, track-end detection |
+| **Mixer control** | [`xair-api`](https://pypi.org/project/xair-api/) | Controls XR12 faders directly via OSC/WiFi — no MIDI hardware needed |
+| **DMX** | [OLA](https://www.openlighting.org/ola/) | Open Lighting Architecture, runs as a daemon on Pi, Python API |
+| **Screen output** | `pygame` fullscreen | Countdown timer + shuffle logo |
+| **State machine** | Plain Python | Two states, four outputs, ~100 lines |
+
+### Alternatives
+
+| | Python | Node.js + Chromium | openFrameworks | TouchDesigner | DragonRuby |
+|---|---|---|---|---|---|
+| **Audio** | pygame.mixer | Web Audio / mpv | Built-in | Built-in | Needs external lib |
+| **XR12 control** | `xair-api` (OSC) | `osc.js` | `ofxOsc` | OSC nodes | No OSC support |
+| **DMX** | OLA | `node-dmx` | `ofxDmx` | Plugins/OSC | Serial/USB adapter |
+| **Visuals** | Basic (pygame) | Excellent (HTML/CSS) | Excellent (OpenGL) | Excellent | Good (game engine) |
+| **Runs on Pi** | Yes | Yes (heavy) | Yes | No | Yes |
+| **Complexity** | Low | Medium | High | Low | Medium |
+| **Best for** | This project | Polished screen output | Future visual upgrades | Quick prototyping | Embedded Ruby |
+
+**Python wins** because [`xair-api`](https://pypi.org/project/xair-api/) gives direct fader control over the XR12 via WiFi, OLA is battle-tested for DMX on Pi, and `pygame` handles both audio and display. The whole system runs as a single lightweight process.
 
 [^cuepoint]: A defined position marker that belongs to a track, like the hot cues on a Pioneer CDJ.
 [^playhead]: The current playback position in the audio player
