@@ -60,6 +60,22 @@ A single Python process running on a Raspberry Pi covers all requirements:
 | **Screen output** | `pygame` fullscreen | Countdown timer + shuffle logo |
 | **State machine** | Plain Python | Two states, four outputs, ~100 lines |
 
+### Setup
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install pygame python-osc xair-api
+```
+
+Run with:
+
+```bash
+python main.py
+```
+
+Put your shuffle transition MP3s in `./tracks/` before starting.
+
 ### Alternatives
 
 | | Python | Node.js + Chromium | openFrameworks | TouchDesigner | DragonRuby |
