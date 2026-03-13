@@ -65,7 +65,7 @@ A single Python process running on a Raspberry Pi covers all requirements:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install pygame python-osc xair-api
+pip install pygame-ce python-osc xair-api
 ```
 
 Run with:
