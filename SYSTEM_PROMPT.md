@@ -69,6 +69,31 @@ The repo contains a previous implementation in Ruby/JRuby + Arduino + Quartz Com
 - `CountDownToNextDJ.qtz` — Quartz Composer countdown timer. Now replaced by pygame fullscreen display.
 - `Shuffle.nml` — Traktor playlist file. The new system just reads MP3s from a directory.
 
+## Testing
+
+**Write tests first, run them, then write the implementation.**
+
+Use `pytest`. All hardware I/O (XR12, QLC+, pygame) must be behind thin wrappers so tests can run without real hardware.
+
+**What to test:**
+- **State machine transitions** — timer expiry triggers `DJ_SET` → `SHUFFLE`, track end triggers `SHUFFLE` → `DJ_SET`
+- **Shuffle track selection** — random, no repeats until all tracks played, reshuffles when exhausted
+- **Fade sequences** — correct OSC values sent in order (mock the OSC client)
+- **Timer countdown** — ticks correctly, fires event at `00:00`
+- **Graceful degradation** — system continues when XR12 or QLC+ is unreachable
+
+**What not to test:**
+- pygame rendering (visual output)
+- Actual OSC/network communication
+- QLC+ or XR12 behavior
+
+**Structure:**
+- Tests live in `tests/` with files mirroring the source: `tests/test_state_machine.py`, `tests/test_mixer.py`, etc.
+- Use `unittest.mock.patch` to replace hardware clients with mocks
+- Tests must run fast (no `sleep`, no network, no audio) and pass without any hardware connected
+
+**Workflow:** Before writing any production code for a feature, write a failing test that describes the expected behavior. Make it pass. Then move on.
+
 ## Code Style
 
 - Write clear, readable Python. Use type hints for function signatures.
