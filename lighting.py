@@ -3,6 +3,8 @@
 Triggers pre-built QLC+ scenes for DJ Set and Shuffle states.
 """
 
+from pythonosc.udp_client import SimpleUDPClient
+
 
 class Lighting:
     """Sends OSC triggers to QLC+ to switch between lighting scenes."""
@@ -16,8 +18,6 @@ class Lighting:
     def _connect(self) -> None:
         """Attempt to connect to QLC+ OSC. Warn and continue if unreachable."""
         try:
-            from pythonosc.udp_client import SimpleUDPClient
-
             self._client = SimpleUDPClient(self.host, self.port)
         except Exception as e:
             print(f"Warning: QLC+ unreachable at {self.host}:{self.port} — {e}")
