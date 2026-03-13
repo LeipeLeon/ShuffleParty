@@ -3,3 +3,4 @@ CountDownToNextDJ~.qtz
 __pycache__/
 *.pyc
 .pytest_cache/
+tracks/
