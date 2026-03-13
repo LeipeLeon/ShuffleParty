@@ -40,8 +40,8 @@ The system coordinates four output channels, driven by two state signals (`TIMER
 
 - **Audio — DJ channel:** Controlled via OSC or MIDI on a digital mixer (e.g. Behringer XR12). The XR12 supports both MIDI CC and OSC over WiFi/Ethernet (UDP port 10023). OSC is preferred — no USB MIDI interface needed, just a network connection.
 - **Audio — Shuffle track:** An MP3 player (software or hardware) routed to a separate mixer channel. A random track is selected from the playlist and triggered by `TIMER_DONE`. Also faded via OSC/MIDI.
-- **DMX — FX lights:** Music-reactive lighting. On during DJ set, off during shuffle.
-- **DMX — Pin spots:** Mirrorball spots. Off during DJ set, on during shuffle.
+- **DMX — FX lights:** Music-reactive lighting. On during DJ set, off during shuffle. Controlled by [QLC+](https://www.qlcplus.org/), triggered via OSC from the Python process.
+- **DMX — Pin spots:** Mirrorball spots. Off during DJ set, on during shuffle. Also driven by QLC+ scenes.
 - **Screen:** A display/beamer showing either the countdown timer or the shuffle logo.
 
 ![](doc/shuffle-setup.png)
@@ -56,7 +56,7 @@ A single Python process running on a Raspberry Pi covers all requirements:
 |---|---|---|
 | **Audio playback** | `pygame.mixer` | MP3 playback, fade control, track-end detection |
 | **Mixer control** | [`xair-api`](https://pypi.org/project/xair-api/) | Controls XR12 faders directly via OSC/WiFi — no MIDI hardware needed |
-| **DMX** | [OLA](https://www.openlighting.org/ola/) | Open Lighting Architecture, runs as a daemon on Pi, Python API |
+| **DMX** | [QLC+](https://www.qlcplus.org/) | Lighting control companion app, triggered via OSC from Python |
 | **Screen output** | `pygame` fullscreen | Countdown timer + shuffle logo |
 | **State machine** | Plain Python | Two states, four outputs, ~100 lines |
 
@@ -72,7 +72,7 @@ A single Python process running on a Raspberry Pi covers all requirements:
 | **Complexity** | Low | Medium | High | Low | Medium |
 | **Best for** | This project | Polished screen output | Future visual upgrades | Quick prototyping | Embedded Ruby |
 
-**Python wins** because [`xair-api`](https://pypi.org/project/xair-api/) gives direct fader control over the XR12 via WiFi, OLA is battle-tested for DMX on Pi, and `pygame` handles both audio and display. The whole system runs as a single lightweight process.
+**Python wins** because [`xair-api`](https://pypi.org/project/xair-api/) gives direct fader control over the XR12 via WiFi, [QLC+](https://www.qlcplus.org/) handles all DMX fixture management and light show design (triggered via OSC), and `pygame` handles both audio and display.
 
 [^cuepoint]: A defined position marker that belongs to a track, like the hot cues on a Pioneer CDJ.
 [^playhead]: The current playback position in the audio player
