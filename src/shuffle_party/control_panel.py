@@ -293,6 +293,10 @@ class ControlPanel:
                     self._getpos_at_seek_ms = pygame.mixer.music.get_pos()
                     self._seek_target_ms = seek_ms
                     pygame.mixer.music.set_pos(seek_ms / 1000.0)
+                elif self.party.state == State.DJ_SET and self._track_name:
+                    # Track is pre-loaded but not playing — update start position
+                    self._seek_target_ms = seek_ms
+                    self._getpos_at_seek_ms = 0
                 return
             # Virtual reTerminal buttons
             for action, rect in self._hw_btn_rects.items():
