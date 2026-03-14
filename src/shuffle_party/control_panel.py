@@ -146,6 +146,7 @@ class ControlPanel:
         self._paused = False
         self._waveform = []
         self._cover_art = None
+        self._fadein_cue_ms = -1
         self._fadeout_cue_ms = -1
 
         if not track_path:
@@ -184,21 +185,25 @@ class ControlPanel:
                             pass
                         break
 
-                # Fadeout cue
+                # Fade cues
                 for key in audio.tags:
-                    if key.startswith("TXXX:") and "FADEOUT" in key.upper():
+                    if key.startswith("TXXX:"):
+                        tag_upper = key.upper()
                         try:
                             ms = int(audio.tags[key].text[0])
-                            if 0 < ms < self._duration_ms:
-                                self._fadeout_cue_ms = ms
                         except (ValueError, IndexError):
-                            pass
-                        break
+                            continue
+                        if "FADEIN" in tag_upper and 0 < ms < self._duration_ms:
+                            self._fadein_cue_ms = ms
+                        elif "FADEOUT" in tag_upper and 0 < ms < self._duration_ms:
+                            self._fadeout_cue_ms = ms
 
+            # Place playhead at fadein point so playback starts there
+            if self._fadein_cue_ms > 0:
+                self._seek_offset_ms = self._fadein_cue_ms
+                logger.info(f"Fadein cue at {self._fadein_cue_ms / 1000:.1f}s for {name}")
             if self._fadeout_cue_ms >= 0:
-                logger.info(
-                    f"Fadeout cue at {self._fadeout_cue_ms / 1000:.1f}s for {name}"
-                )
+                logger.info(f"Fadeout cue at {self._fadeout_cue_ms / 1000:.1f}s for {name}")
         except Exception as e:
             logger.warning(f"Could not read MP3 metadata for {track_path} — {e!r}")
 
@@ -484,7 +489,14 @@ class ControlPanel:
             if h > 0:
                 pygame.draw.rect(surf, color, (x, mid - h, max(1, int(bar_w) - 1), h * 2))
 
-        # Fadeout cue marker
+        # Fadein cue marker (green dashed)
+        if self._fadein_cue_ms > 0 and self._duration_ms > 0:
+            cue_x = rect.x + int((self._fadein_cue_ms / self._duration_ms) * rect.width)
+            for dy in range(0, rect.height, 6):
+                pygame.draw.line(surf, (0, 200, 120), (cue_x, rect.y + dy),
+                                 (cue_x, rect.y + min(dy + 3, rect.height)), 2)
+
+        # Fadeout cue marker (orange dashed)
         if self._fadeout_cue_ms >= 0 and self._duration_ms > 0:
             cue_x = rect.x + int((self._fadeout_cue_ms / self._duration_ms) * rect.width)
             for dy in range(0, rect.height, 6):

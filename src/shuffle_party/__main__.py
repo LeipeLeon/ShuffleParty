@@ -51,6 +51,9 @@ def start_shuffle(party, control) -> None:
     if party.pending_track:
         try:
             pygame.mixer.music.play()
+            # Start at fadein cue if available
+            if control._fadein_cue_ms > 0:
+                pygame.mixer.music.set_pos(control._fadein_cue_ms / 1000.0)
         except Exception as e:
             logging.warning(f"Could not play {party.pending_track} — {e!r}")
     party.pending_track = None
