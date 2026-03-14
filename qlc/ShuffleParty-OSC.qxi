@@ -9,14 +9,14 @@
  <Manufacturer>Shuffle Partey</Manufacturer>
  <Model>OSC Control</Model>
  <Type>OSC</Type>
- <!-- Channel 1: DJ Set scene trigger -->
- <Channel Number="1">
-  <Name>DJ Set</Name>
-  <Type>Button</Type>
+ <!-- /dj -> CRC16-CCITT hash = 27753 -->
+ <Channel Number="27753">
+  <Name>/dj</Name>
+  <Type>Slider</Type>
  </Channel>
- <!-- Channel 2: Shuffle scene trigger -->
- <Channel Number="2">
-  <Name>Shuffle</Name>
-  <Type>Button</Type>
+ <!-- /shuffle -> CRC16-CCITT hash = 34360 -->
+ <Channel Number="34360">
+  <Name>/shuffle</Name>
+  <Type>Slider</Type>
  </Channel>
 </InputProfile>

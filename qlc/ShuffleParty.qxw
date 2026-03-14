@@ -13,7 +13,9 @@
     <Input Plugin="OSC" Line="0">
      <PluginParameters port="7700"/>
     </Input>
+    <Feedback Plugin="OSC" Line="0"/>
     <Output Plugin="DMX USB" Line="0"/>
+    <Profile>Shuffle Partey OSC Control</Profile>
    </Universe>
   </InputOutputMap>
   <!-- Generic dimmer fixtures -->
@@ -81,7 +83,7 @@
   </Fixture>
   <!-- Scene: DJ Set — FX lights on, pin spots off -->
   <Function ID="0" Type="Scene" Name="DJ Set">
-   <Speed FadeIn="1000" FadeOut="1000" Duration="0"/>
+   <Speed FadeIn="0" FadeOut="0" Duration="0"/>
    <FixtureVal ID="0">0,255</FixtureVal>
    <FixtureVal ID="1">0,255</FixtureVal>
    <FixtureVal ID="2">0,255</FixtureVal>
@@ -91,7 +93,7 @@
   </Function>
   <!-- Scene: Shuffle — FX lights off, pin spots on -->
   <Function ID="1" Type="Scene" Name="Shuffle">
-   <Speed FadeIn="1000" FadeOut="1000" Duration="0"/>
+   <Speed FadeIn="0" FadeOut="0" Duration="0"/>
    <FixtureVal ID="0">0,0</FixtureVal>
    <FixtureVal ID="1">0,0</FixtureVal>
    <FixtureVal ID="2">0,0</FixtureVal>
@@ -109,9 +111,9 @@
     <BackgroundImage>None</BackgroundImage>
     <Font>Default</Font>
    </Appearance>
-   <!-- Button: DJ Set scene -->
-   <Button Caption="DJ Set" ID="0" Icon="">
-    <WindowState Visible="True" X="10" Y="10" Width="200" Height="80"/>
+   <!-- Slider: DJ Set scene level (controlled by /dj OSC) -->
+   <Slider Caption="DJ Set" ID="0" WidgetStyle="Slider" InvertedAppearance="false">
+    <WindowState Visible="True" X="10" Y="10" Width="60" Height="300"/>
     <Appearance>
      <FrameStyle>None</FrameStyle>
      <ForegroundColor>Default</ForegroundColor>
@@ -119,13 +121,15 @@
      <BackgroundImage>None</BackgroundImage>
      <Font>Default</Font>
     </Appearance>
-    <Function ID="0"/>
-    <Action>Toggle</Action>
-    <Input Universe="0" Channel="1"/>
-   </Button>
-   <!-- Button: Shuffle scene -->
-   <Button Caption="Shuffle" ID="1" Icon="">
-    <WindowState Visible="True" X="220" Y="10" Width="200" Height="80"/>
+    <SliderMode ValueDisplayStyle="Percentage" ClickAndGoType="None">Playback</SliderMode>
+    <Playback>
+     <Function>0</Function>
+    </Playback>
+    <Input Universe="0" Channel="27753"/>
+   </Slider>
+   <!-- Slider: Shuffle scene level (controlled by /shuffle OSC) -->
+   <Slider Caption="Shuffle" ID="1" WidgetStyle="Slider" InvertedAppearance="false">
+    <WindowState Visible="True" X="80" Y="10" Width="60" Height="300"/>
     <Appearance>
      <FrameStyle>None</FrameStyle>
      <ForegroundColor>Default</ForegroundColor>
@@ -133,10 +137,12 @@
      <BackgroundImage>None</BackgroundImage>
      <Font>Default</Font>
     </Appearance>
-    <Function ID="1"/>
-    <Action>Toggle</Action>
-    <Input Universe="0" Channel="2"/>
-   </Button>
+    <SliderMode ValueDisplayStyle="Percentage" ClickAndGoType="None">Playback</SliderMode>
+    <Playback>
+     <Function>1</Function>
+    </Playback>
+    <Input Universe="0" Channel="34360"/>
+   </Slider>
   </Frame>
   <Properties>
    <Size Width="1920" Height="1080"/>
