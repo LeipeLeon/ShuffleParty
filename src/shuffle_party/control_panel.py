@@ -361,12 +361,6 @@ class ControlPanel:
         state = self.party.state
         y = 10
 
-        # -- Status bar --
-        state_names = {State.IDLE: "IDLE", State.DJ_SET: "DJ SET", State.SHUFFLE: "SHUFFLE"}
-        state_text = self._font_med.render(state_names[state], True, TEXT)
-        surf.blit(state_text, (12, y + 4))
-        y = 30
-
         # -- Track info --
         self._draw_section_label(surf, "Shuffle Track", y)
         y += 20
