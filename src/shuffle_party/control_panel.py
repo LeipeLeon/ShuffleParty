@@ -77,6 +77,11 @@ class ControlPanel:
         # Button hover
         self._hover_btn: str | None = None
 
+        # Dynamic layout rects (updated each draw)
+        self._btn_rect = pygame.Rect(0, 0, 0, 0)
+        self._dur_slider_rect = pygame.Rect(0, 0, 0, 0)
+        self._vol_slider_rect = pygame.Rect(0, 0, 0, 0)
+
     def _make_placeholder(self) -> pygame.Surface:
         """Create an 80x80 placeholder surface for missing cover art."""
         surf = pygame.Surface((80, 80))
@@ -210,24 +215,19 @@ class ControlPanel:
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             x, y = event.pos
-            # Button click
-            btn = self._button_rect()
-            if btn.collidepoint(x, y):
+            if self._btn_rect.collidepoint(x, y):
                 if self.party.state == State.IDLE:
                     self._start_dj = True
                 else:
                     self._fade_out_now = True
                 return
-            # Slider drag start
-            dur_rect = self._duration_slider_rect()
-            if dur_rect.collidepoint(x, y):
+            if self._dur_slider_rect.collidepoint(x, y):
                 self._dragging = "duration"
-                self._update_slider("duration", x, dur_rect)
+                self._update_slider("duration", x, self._dur_slider_rect)
                 return
-            vol_rect = self._volume_slider_rect()
-            if vol_rect.collidepoint(x, y):
+            if self._vol_slider_rect.collidepoint(x, y):
                 self._dragging = "volume"
-                self._update_slider("volume", x, vol_rect)
+                self._update_slider("volume", x, self._vol_slider_rect)
                 return
 
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
@@ -235,14 +235,11 @@ class ControlPanel:
 
         elif event.type == pygame.MOUSEMOTION:
             x, y = event.pos
-            # Hover detection
-            btn = self._button_rect()
-            self._hover_btn = "btn" if btn.collidepoint(x, y) else None
-            # Drag
+            self._hover_btn = "btn" if self._btn_rect.collidepoint(x, y) else None
             if self._dragging == "duration":
-                self._update_slider("duration", x, self._duration_slider_rect())
+                self._update_slider("duration", x, self._dur_slider_rect)
             elif self._dragging == "volume":
-                self._update_slider("volume", x, self._volume_slider_rect())
+                self._update_slider("volume", x, self._vol_slider_rect)
 
     def _update_slider(self, name: str, mouse_x: int, rect: pygame.Rect) -> None:
         t = max(0.0, min(1.0, (mouse_x - rect.x) / rect.width))
@@ -254,17 +251,6 @@ class ControlPanel:
         elif name == "volume":
             self._volume_value = round(t, 2)
             self.party.mixer.set_master_volume(self._volume_value)
-
-    # -- Layout rects --
-
-    def _button_rect(self) -> pygame.Rect:
-        return pygame.Rect(10, 55, WIDTH - 20, 36)
-
-    def _duration_slider_rect(self) -> pygame.Rect:
-        return pygame.Rect(50, 120, WIDTH - 100, 16)
-
-    def _volume_slider_rect(self) -> pygame.Rect:
-        return pygame.Rect(50, 440, WIDTH - 100, 16)
 
     # -- Drawing --
 
@@ -290,7 +276,8 @@ class ControlPanel:
         y = 55
 
         # -- Button --
-        btn = self._button_rect()
+        self._btn_rect = pygame.Rect(10, y, WIDTH - 20, 36)
+        btn = self._btn_rect
         color = BTN_HOVER if self._hover_btn == "btn" else BTN_COLOR
         pygame.draw.rect(surf, color, btn, border_radius=4)
         if state == State.IDLE:
@@ -306,7 +293,8 @@ class ControlPanel:
         # -- Duration slider --
         self._draw_section_label(surf, "Set Duration", y)
         y += 18
-        dur_rect = self._duration_slider_rect()
+        self._dur_slider_rect = pygame.Rect(50, y, WIDTH - 100, 16)
+        dur_rect = self._dur_slider_rect
         t = (self._duration_value - 30) / (20 * 60 - 30)
         self._draw_slider(surf, dur_rect, t, "30s", "20 min")
         y += 20
@@ -355,7 +343,8 @@ class ControlPanel:
         # -- Volume slider --
         self._draw_section_label(surf, "Master Volume", y)
         y += 18
-        vol_rect = self._volume_slider_rect()
+        self._vol_slider_rect = pygame.Rect(50, y, WIDTH - 100, 16)
+        vol_rect = self._vol_slider_rect
         self._draw_slider(surf, vol_rect, self._volume_value, "0%", "100%")
         y += 20
         vol_text = self._font_small.render(f"{int(self._volume_value * 100)}%", True, TEXT_DIM)
