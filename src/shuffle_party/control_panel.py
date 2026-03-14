@@ -550,7 +550,7 @@ class ControlPanel:
         track_x = cx - bar_w // 2
 
         # Track background
-        track_rect = pygame.Rect(track_x, y + 16, bar_w, h - 32)
+        track_rect = pygame.Rect(track_x, y + 22, bar_w, h - 38)
         pygame.draw.rect(surf, SLIDER_TRACK, track_rect, border_radius=3)
 
         # Fill from bottom
