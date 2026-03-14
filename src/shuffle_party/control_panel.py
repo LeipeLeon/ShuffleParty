@@ -360,20 +360,6 @@ class ControlPanel:
         surf.blit(time_text, (w - time_text.get_width() - 12, y))
         y = 55
 
-        # -- Duration slider --
-        self._draw_section_label(surf, "Set Duration", y)
-        y += 18
-        self._dur_slider_rect = pygame.Rect(50, y, w - 100, 16)
-        dur_rect = self._dur_slider_rect
-        t = (self._duration_value - 30) / (20 * 60 - 30)
-        self._draw_slider(surf, dur_rect, t, "30s", "20 min")
-        y += 20
-        m, s = divmod(self._duration_value, 60)
-        dur_label = f"{m} min {s} sec" if s else f"{m} min"
-        dur_text = self._font_small.render(dur_label, True, TEXT_DIM)
-        surf.blit(dur_text, (w // 2 - dur_text.get_width() // 2, y))
-        y += 22
-
         # -- Track info --
         self._draw_section_label(surf, "Shuffle Track", y)
         y += 20
@@ -471,6 +457,19 @@ class ControlPanel:
         h = surf.get_height()
         btn_h = 56
         btn_y = h - btn_h
+
+        # -- Duration slider (just above buttons) --
+        dur_y = btn_y - 50
+        self._draw_section_label(surf, "Set Duration", dur_y)
+        dur_y += 18
+        self._dur_slider_rect = pygame.Rect(50, dur_y, w - 100, 16)
+        dur_rect = self._dur_slider_rect
+        t = (self._duration_value - 30) / (20 * 60 - 30)
+        self._draw_slider(surf, dur_rect, t, "30s", "20 min")
+        m, s = divmod(self._duration_value, 60)
+        dur_label = f"{m} min {s} sec" if s else f"{m} min"
+        dur_text = self._font_small.render(dur_label, True, TEXT_DIM)
+        surf.blit(dur_text, (w // 2 - dur_text.get_width() // 2, dur_y + 20))
         col_w = w // 6
         self._hw_btn_rects = {}
 
