@@ -145,7 +145,7 @@ def run() -> None:
                     control._fade_out_now = True
 
             elif event.type == TIMER_TICK:
-                if party.state == State.DJ_SET:
+                if party.state == State.DJ_SET and not crossfading:
                     expired = party.display.tick()
                     if expired:
                         start_shuffle(party, control)
