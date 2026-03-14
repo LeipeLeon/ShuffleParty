@@ -56,10 +56,9 @@ class ShuffleParty:
         self.lighting.activate_shuffle()
 
     def on_shuffle_track_ended(self) -> None:
-        """Called when the shuffle track finishes playing."""
+        """Called when the shuffle track finishes playing. Timer starts after crossfade."""
         if self.state != State.SHUFFLE:
             return
         self.state = State.DJ_SET
         self.mixer.fade_in()
         self.lighting.activate_dj_set()
-        self.display.start_timer()
