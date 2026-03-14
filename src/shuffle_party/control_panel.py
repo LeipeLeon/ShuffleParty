@@ -460,8 +460,8 @@ class ControlPanel:
         fader_h = 140
         faders = [
             ("Master", self._volume_value, ACCENT, True),
-            ("DJ", self.party.mixer.dj_level, GREEN, False),
             ("Shuffle", self.party.mixer.shuffle_level, ACCENT, False),
+            ("DJ", self.party.mixer.dj_level, GREEN, False),
         ]
         n_faders = len(faders)
         spacing = (w - 24) // n_faders
