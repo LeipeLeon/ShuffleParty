@@ -650,9 +650,60 @@ class ControlPanel:
         val_text = self._font_small.render(f"{int(level * 100)}%", True, TEXT_DIM)
         surf.blit(val_text, (cx - val_text.get_width() // 2, y))
 
-        # Name label on bottom
-        name_text = self._font_small.render(label, True, TEXT_DIM)
-        surf.blit(name_text, (cx - name_text.get_width() // 2, label_y))
+        # Icon or name label on bottom
+        if label == "Shuffle":
+            self._draw_mirrorball_icon(surf, cx, label_y + 8, 8)
+        elif label == "DJ":
+            self._draw_dj_icon(surf, cx, label_y + 8, 8)
+        else:
+            name_text = self._font_small.render(label, True, TEXT_DIM)
+            surf.blit(name_text, (cx - name_text.get_width() // 2, label_y))
+
+    def _draw_mirrorball_icon(
+        self, surf: pygame.Surface, cx: int, cy: int, r: int,
+    ) -> None:
+        """Draw a mirrorball icon: circle with grid lines and sparkles."""
+        color = (160, 160, 180)
+        dim = (100, 100, 120)
+        sparkle = (220, 220, 240)
+        # Main sphere
+        pygame.draw.circle(surf, dim, (cx, cy), r)
+        pygame.draw.circle(surf, color, (cx, cy), r, 1)
+        # Horizontal bands
+        for dy in (-r * 2 // 3, 0, r * 2 // 3):
+            half_w = int((r**2 - dy**2) ** 0.5) if abs(dy) < r else 0
+            if half_w > 0:
+                pygame.draw.line(surf, color, (cx - half_w, cy + dy), (cx + half_w, cy + dy), 1)
+        # Vertical bands
+        for dx in (-r * 2 // 3, 0, r * 2 // 3):
+            half_h = int((r**2 - dx**2) ** 0.5) if abs(dx) < r else 0
+            if half_h > 0:
+                pygame.draw.line(surf, color, (cx + dx, cy - half_h), (cx + dx, cy + half_h), 1)
+        # Sparkles
+        for sx, sy in [(-r - 3, -r + 1), (r + 2, -r - 2), (r + 4, r - 3)]:
+            pygame.draw.line(surf, sparkle, (cx + sx - 2, cy + sy), (cx + sx + 2, cy + sy), 1)
+            pygame.draw.line(surf, sparkle, (cx + sx, cy + sy - 2), (cx + sx, cy + sy + 2), 1)
+
+    def _draw_dj_icon(
+        self, surf: pygame.Surface, cx: int, cy: int, r: int,
+    ) -> None:
+        """Draw a DJ icon: headphones over a record."""
+        color = (160, 160, 180)
+        dim = (100, 100, 120)
+        # Record (vinyl)
+        pygame.draw.circle(surf, dim, (cx, cy + 2), r)
+        pygame.draw.circle(surf, color, (cx, cy + 2), r, 1)
+        pygame.draw.circle(surf, color, (cx, cy + 2), r // 3, 1)
+        pygame.draw.circle(surf, (140, 140, 160), (cx, cy + 2), 1)
+        # Headphones arc
+        arc_r = r - 1
+        arc_rect = pygame.Rect(cx - arc_r, cy - r - arc_r + 2, arc_r * 2, arc_r * 2)
+        pygame.draw.arc(surf, color, arc_rect, 0.3, 2.84, 2)
+        # Ear cups
+        cup_w, cup_h = 4, 5
+        pygame.draw.rect(surf, color, (cx - arc_r - 1, cy - r + 1, cup_w, cup_h), border_radius=1)
+        pygame.draw.rect(surf, color, (cx + arc_r - cup_w + 2, cy - r + 1, cup_w, cup_h),
+                         border_radius=1)
 
     def _get_time_label(self) -> str:
         if not self._track_name:
