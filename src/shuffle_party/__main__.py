@@ -204,6 +204,19 @@ def run() -> None:
                 start_shuffle(party, control)
                 track_played = True
 
+        # Handle reset to IDLE
+        if control.should_reset():
+            pygame.mixer.music.stop()
+            party.state = State.IDLE
+            party.mixer._fade = None
+            party.mixer.dj_level = 1.0
+            party.mixer.shuffle_level = 0.0
+            party.display.remaining_seconds = party.display.set_duration
+            crossfading = False
+            fade_t = 1.0
+            track_played = False
+            preload_track(party, control)
+
         # Detect state change and start visual crossfade
         if party.state != prev_state:
             crossfade_start = time.monotonic()

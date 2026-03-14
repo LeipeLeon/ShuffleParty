@@ -66,6 +66,7 @@ class ControlPanel:
         self._start_dj = False
         self._fade_out_now = False
         self._skip_track = False
+        self._reset = False
         self._fadeout_cue_triggered = False
 
         # Track metadata
@@ -103,6 +104,7 @@ class ControlPanel:
         self._vol_slider_rect = pygame.Rect(0, 0, 0, 0)
         self._waveform_rect = pygame.Rect(0, 0, 0, 0)
         self._pause_btn_rect = pygame.Rect(0, 0, 0, 0)
+        self._reset_btn_rect = pygame.Rect(0, 0, 0, 0)
         self._skip_btn_rect = pygame.Rect(0, 0, 0, 0)
         self._hw_btn_rects: dict[str, pygame.Rect] = {}
         self._paused = False
@@ -144,6 +146,12 @@ class ControlPanel:
     def should_fade_out_now(self) -> bool:
         if self._fade_out_now:
             self._fade_out_now = False
+            return True
+        return False
+
+    def should_reset(self) -> bool:
+        if self._reset:
+            self._reset = False
             return True
         return False
 
@@ -264,6 +272,9 @@ class ControlPanel:
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             x, y = event.pos
+            if self._reset_btn_rect.collidepoint(x, y):
+                self._reset = True
+                return
             if self._dur_slider_rect.collidepoint(x, y):
                 self._dragging = "duration"
                 self._update_slider("duration", x, self._dur_slider_rect)
@@ -360,6 +371,16 @@ class ControlPanel:
 
         state = self.party.state
         y = 10
+
+        # -- Reset button (top right) --
+        reset_w, reset_h = 28, 28
+        self._reset_btn_rect = pygame.Rect(w - reset_w - 8, 8, reset_w, reset_h)
+        rb = self._reset_btn_rect
+        pygame.draw.rect(surf, BTN_COLOR, rb, border_radius=4)
+        # Power/reset icon: circle with vertical line
+        rcx, rcy = rb.centerx, rb.centery
+        pygame.draw.circle(surf, TEXT_DIM, (rcx, rcy + 1), 8, 2)
+        pygame.draw.line(surf, TEXT_DIM, (rcx, rcy - 9), (rcx, rcy - 1), 2)
 
         # -- Track info --
 
