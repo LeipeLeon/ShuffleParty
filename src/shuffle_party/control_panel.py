@@ -31,6 +31,10 @@ class SharedState:
         self.volume_changed = mp.Value("i", 0)  # flag
         self.fade_out_now = mp.Value("i", 0)  # flag
 
+        # Fader levels (updated every frame from mixer)
+        self.dj_level = mp.Value("d", 1.0)
+        self.shuffle_level = mp.Value("d", 0.0)
+
         # Channel info for display
         self.dj_channels = dj_channels
         self.shuffle_channels = shuffle_channels
@@ -228,15 +232,14 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
             mp3_time_var.set("")
 
         # Channel levels
-        is_dj = shared.state.value == 0
-        dj_level = 100 if is_dj else 0
-        shuffle_level = 0 if is_dj else 100
+        dj_pct = shared.dj_level.value * 100
+        shuffle_pct = shared.shuffle_level.value * 100
         for ch in dj_channels:
             if ch in level_bars:
-                level_bars[ch]["value"] = dj_level
+                level_bars[ch]["value"] = dj_pct
         for ch in shuffle_channels:
             if ch in level_bars:
-                level_bars[ch]["value"] = shuffle_level
+                level_bars[ch]["value"] = shuffle_pct
 
         root.after(100, poll)
 
@@ -269,6 +272,8 @@ class ControlPanel:
         # Push state to control panel
         self.shared.state.value = 1 if self.party.state == State.SHUFFLE else 0
         self.shared.remaining_seconds.value = self.party.display.remaining_seconds
+        self.shared.dj_level.value = self.party.mixer.dj_level
+        self.shared.shuffle_level.value = self.party.mixer.shuffle_level
 
         # Push MP3 position
         try:

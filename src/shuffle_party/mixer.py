@@ -26,6 +26,8 @@ class Mixer:
         self.shuffle_channels = shuffle_channels
         self.fade_duration = fade_duration
         self._client = None
+        self.dj_level = 1.0
+        self.shuffle_level = 0.0
         self._connect()
 
     def _connect(self) -> None:
@@ -64,6 +66,8 @@ class Mixer:
             t = i / steps
             dj_value = dj_start + (dj_end - dj_start) * t
             shuffle_value = shuffle_start + (shuffle_end - shuffle_start) * t
+            self.dj_level = dj_value
+            self.shuffle_level = shuffle_value
             if self._client is not None:
                 for ch in self.dj_channels:
                     self._client.send(f"/ch/{ch:02d}/mix/fader", dj_value)
