@@ -353,12 +353,7 @@ class ControlPanel:
         state_names = {State.IDLE: "IDLE", State.DJ_SET: "DJ SET", State.SHUFFLE: "SHUFFLE"}
         state_text = self._font_med.render(state_names[state], True, TEXT)
         surf.blit(state_text, (12, y + 4))
-
-        rem = self.party.display.remaining_seconds
-        time_str = f"{rem // 60:02d}:{rem % 60:02d}"
-        time_text = self._font_big.render(time_str, True, TEXT)
-        surf.blit(time_text, (w - time_text.get_width() - 12, y))
-        y = 55
+        y = 30
 
         # -- Track info --
         self._draw_section_label(surf, "Shuffle Track", y)
@@ -431,7 +426,7 @@ class ControlPanel:
             self._draw_waveform(surf, wf_rect)
         y += 68
 
-        # -- Faders (master + DJ/Shuffle vertical bars) --
+        # -- Faders (left-aligned) + countdown timer (right) --
         self._draw_section_label(surf, "Levels", y)
         y += 18
         h = surf.get_height()
@@ -442,17 +437,27 @@ class ControlPanel:
             ("Shuffle", self.party.mixer.shuffle_level, ACCENT, False),
             ("DJ", self.party.mixer.dj_level, GREEN, False),
         ]
-        n_faders = len(faders)
-        spacing = (w - 24) // n_faders
+        fader_spacing = 60
         for i, (label, level, color, is_master) in enumerate(faders):
-            cx = 12 + i * spacing + spacing // 2
+            cx = 12 + i * fader_spacing + fader_spacing // 2
             bar_w = 24 if is_master else 40
             self._draw_vertical_bar(
                 surf, cx, y, bar_w, fader_h, label, level, color, is_master,
             )
         # Store volume slider rect for hit testing (the master fader)
-        master_cx = 12 + spacing // 2
+        master_cx = 12 + fader_spacing // 2
         self._vol_slider_rect = pygame.Rect(master_cx - 12, y, 24, fader_h)
+
+        # -- Countdown timer in remaining space --
+        timer_x = 12 + len(faders) * fader_spacing + 20
+        timer_w = w - timer_x - 12
+        timer_cy = y + fader_h // 2
+        rem = self.party.display.remaining_seconds
+        time_str = f"{rem // 60:02d}:{rem % 60:02d}"
+        timer_font_size = min(int(fader_h * 0.6), int(timer_w * 0.4))
+        timer_font = pygame.font.Font(None, max(40, timer_font_size))
+        timer_text = timer_font.render(time_str, True, TEXT)
+        surf.blit(timer_text, timer_text.get_rect(center=(timer_x + timer_w // 2, timer_cy)))
         y += fader_h + 8
 
         # -- Virtual reTerminal buttons (pinned to bottom, 6 equal columns, last 4 are buttons) --
