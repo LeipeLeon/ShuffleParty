@@ -102,6 +102,8 @@ def run() -> None:
         if control.should_fade_out_now():
             if party.state == State.SHUFFLE:
                 pygame.mixer.music.fadeout(int(party.mixer.fade_duration * 1000))
+                control.set_track_name("")
+                party.on_shuffle_track_ended()
             elif party.state == State.DJ_SET:
                 track = party.on_timer_expired()
                 if track:
