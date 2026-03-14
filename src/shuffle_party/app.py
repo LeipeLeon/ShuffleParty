@@ -26,7 +26,8 @@ class ShuffleParty:
         self.mixer = Mixer(
             host=config.XR12_HOST,
             port=config.XR12_PORT,
-            channels=[config.DJ_CHANNEL_L, config.DJ_CHANNEL_R],
+            dj_channels=[config.DJ_CHANNEL_L, config.DJ_CHANNEL_R],
+            shuffle_channel=config.SHUFFLE_CHANNEL,
             fade_duration=config.FADE_DURATION_SECONDS,
         )
         self.lighting = Lighting(
