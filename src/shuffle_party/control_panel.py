@@ -107,7 +107,7 @@ class ControlPanel:
         if not self._track_name:
             return -1
         if not pygame.mixer.music.get_busy() and not self._paused:
-            return 0
+            return self._seek_offset_ms
         return pygame.mixer.music.get_pos() + self._seek_offset_ms
 
     # -- Public interface (same as before) --
