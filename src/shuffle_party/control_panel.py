@@ -57,7 +57,7 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
 
     root = tk.Tk()
     root.title("Shuffle Partey — Controls")
-    root.geometry("480x720")
+    root.geometry("480x780")
     root.resizable(False, False)
 
     style = ttk.Style()
