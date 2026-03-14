@@ -449,9 +449,7 @@ class ControlPanel:
             pos = pygame.mixer.music.get_pos()
             if pos >= 0 and dur > 0:
                 rem_s = max(0, (dur - pos) / 1000)
-                dur_s = dur / 1000
-                return (f"-{int(rem_s) // 60:02d}:{int(rem_s) % 60:02d}"
-                        f" / {int(dur_s) // 60:02d}:{int(dur_s) % 60:02d}")
+                return f"-{int(rem_s) // 60:02d}:{int(rem_s) % 60:02d}"
         if dur > 0:
             return f"Ready — {dur // 60000:02d}:{(dur // 1000) % 60:02d}"
         return "Ready"
