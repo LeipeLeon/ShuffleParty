@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 # Layout constants
 WIDTH = 1280
 HEIGHT = 720
-WAVEFORM_BINS = 600
+WAVEFORM_BINS = WIDTH - 24  # 1px per bar, matching waveform rect width
 
 # Colors
 BG = (26, 26, 46)
