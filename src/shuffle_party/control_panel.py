@@ -42,11 +42,18 @@ PLACEHOLDER_FG = (85, 85, 112)
 class ControlPanel:
     """Pygame-based control panel in a second window."""
 
-    def __init__(self, party) -> None:
+    def __init__(
+        self, party, fullscreen: bool = False, display_index: int | None = None,
+    ) -> None:
         self.party = party
+        kwargs: dict = {}
+        if display_index is not None:
+            kwargs["display_index"] = display_index
         self.window = pygame.Window(
-            "Shuffle Partey — Controls", size=(WIDTH, HEIGHT),
+            "Shuffle Partey — Controls", size=(WIDTH, HEIGHT), **kwargs,
         )
+        if fullscreen:
+            self.window.set_fullscreen(True)
         self._surface = self.window.get_surface()
 
         # Fonts
@@ -331,6 +338,7 @@ class ControlPanel:
 
         surf = self.window.get_surface()
         surf.fill(BG)
+        w = surf.get_width()
 
         state = self.party.state
         y = 10
@@ -343,11 +351,11 @@ class ControlPanel:
         rem = self.party.display.remaining_seconds
         time_str = f"{rem // 60:02d}:{rem % 60:02d}"
         time_text = self._font_big.render(time_str, True, TEXT)
-        surf.blit(time_text, (WIDTH - time_text.get_width() - 12, y))
+        surf.blit(time_text, (w - time_text.get_width() - 12, y))
         y = 55
 
         # -- Button --
-        self._btn_rect = pygame.Rect(10, y, WIDTH - 20, 36)
+        self._btn_rect = pygame.Rect(10, y, w - 20, 36)
         btn = self._btn_rect
         color = BTN_HOVER if self._hover_btn == "btn" else BTN_COLOR
         pygame.draw.rect(surf, color, btn, border_radius=4)
@@ -364,7 +372,7 @@ class ControlPanel:
         # -- Duration slider --
         self._draw_section_label(surf, "Set Duration", y)
         y += 18
-        self._dur_slider_rect = pygame.Rect(50, y, WIDTH - 100, 16)
+        self._dur_slider_rect = pygame.Rect(50, y, w - 100, 16)
         dur_rect = self._dur_slider_rect
         t = (self._duration_value - 30) / (20 * 60 - 30)
         self._draw_slider(surf, dur_rect, t, "30s", "20 min")
@@ -372,7 +380,7 @@ class ControlPanel:
         m, s = divmod(self._duration_value, 60)
         dur_label = f"{m} min {s} sec" if s else f"{m} min"
         dur_text = self._font_small.render(dur_label, True, TEXT_DIM)
-        surf.blit(dur_text, (WIDTH // 2 - dur_text.get_width() // 2, y))
+        surf.blit(dur_text, (w // 2 - dur_text.get_width() // 2, y))
         y += 22
 
         # -- Track info --
@@ -387,7 +395,7 @@ class ControlPanel:
         display = self._track_display
         name_text = self._font_track.render(display, True, TEXT)
         # Clip to available width
-        max_w = WIDTH - 110
+        max_w = w - 110
         if name_text.get_width() > max_w:
             # Truncate with ellipsis
             for end in range(len(display), 0, -1):
@@ -439,7 +447,7 @@ class ControlPanel:
         y += 88
 
         # Waveform
-        wf_rect = pygame.Rect(12, y, WIDTH - 24, 60)
+        wf_rect = pygame.Rect(12, y, w - 24, 60)
         self._waveform_rect = wf_rect
         pygame.draw.rect(surf, PANEL_BG, wf_rect)
         if self._waveform:
@@ -458,7 +466,7 @@ class ControlPanel:
             ("Sh R", self.party.mixer.shuffle_level, False),
         ]
         n_faders = len(faders)
-        spacing = (WIDTH - 24) // n_faders
+        spacing = (w - 24) // n_faders
         for i, (label, level, is_master) in enumerate(faders):
             cx = 12 + i * spacing + spacing // 2
             self._draw_vertical_fader(surf, cx, y, fader_h, label, level, is_master)

@@ -67,10 +67,20 @@ def run() -> None:
     pygame.init()
     pygame.mixer.init()
 
-    # Create both windows
-    display_window = pygame.Window(
-        "Shuffle Partey", size=(270, 180), resizable=True,
-    )
+    # Detect multi-display: reTerminal built-in + external HDMI
+    num_displays = pygame.display.get_num_video_displays()
+    multi_display = num_displays >= 2
+
+    if multi_display:
+        # Timer fullscreen on external HDMI (display 1)
+        display_window = pygame.Window(
+            "Shuffle Partey", size=(1920, 1080), display_index=1,
+        )
+        display_window.set_fullscreen(True)
+    else:
+        display_window = pygame.Window(
+            "Shuffle Partey", size=(270, 180), resizable=True,
+        )
 
     clock = pygame.time.Clock()
 
@@ -93,7 +103,11 @@ def run() -> None:
         logo_original = None
 
     party = ShuffleParty()
-    control = ControlPanel(party)
+    control = ControlPanel(
+        party,
+        fullscreen=multi_display,
+        display_index=0 if multi_display else None,
+    )
     buttons = Buttons(config.BUTTON_DEVICE)
 
     # Set up the music end event so we detect when shuffle tracks finish
