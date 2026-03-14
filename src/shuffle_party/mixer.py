@@ -59,19 +59,18 @@ class Mixer:
         steps: int = 30,
     ) -> None:
         """Ramp DJ and shuffle faders simultaneously over fade_duration."""
-        if self._client is None:
-            return
         step_time = self.fade_duration / steps
         for i in range(steps + 1):
             t = i / steps
             dj_value = dj_start + (dj_end - dj_start) * t
             shuffle_value = shuffle_start + (shuffle_end - shuffle_start) * t
-            for ch in self.dj_channels:
-                self._client.send(f"/ch/{ch:02d}/mix/fader", dj_value)
-            for ch in self.shuffle_channels:
-                self._client.send(f"/ch/{ch:02d}/mix/fader", shuffle_value)
+            if self._client is not None:
+                for ch in self.dj_channels:
+                    self._client.send(f"/ch/{ch:02d}/mix/fader", dj_value)
+                for ch in self.shuffle_channels:
+                    self._client.send(f"/ch/{ch:02d}/mix/fader", shuffle_value)
             if i % 10 == 0:
-                logger.debug("  step %d/%d — DJ ch%s=%.3f, Shuffle ch%s=%.3f",
+                logger.info("  step %d/%d — DJ ch%s=%.3f, Shuffle ch%s=%.3f",
                              i, steps, self.dj_channels, dj_value,
                              self.shuffle_channels, shuffle_value)
             if i < steps:

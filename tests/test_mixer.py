@@ -127,5 +127,6 @@ class TestMixer:
             )
 
         # Should not raise
-        mixer.fade_out()
-        mixer.fade_in()
+        with patch("shuffle_party.mixer.time"):
+            mixer.fade_out()
+            mixer.fade_in()
