@@ -93,6 +93,19 @@ Or just use the startup script (handles deps automatically):
 
 Put your shuffle transition MP3s in `./tracks/` before starting.
 
+### Development Commands
+
+| Task | Command |
+|---|---|
+| Sync dependencies | `uv sync --group dev` |
+| Run app | `uv run python -m shuffle_party` |
+| Run tests | `uv run pytest` |
+| Lint | `uv run ruff check src/ tests/` |
+| Lint (auto-fix) | `uv run ruff check --fix src/ tests/` |
+| Type check | `uv run mypy src/` |
+| Add dependency | `uv add package-name` |
+| Add dev dependency | `uv add --group dev package-name` |
+
 ### Project Structure
 
 ```
