@@ -6,23 +6,11 @@ Two states cycling forever:
 
 from enum import Enum, auto
 
+from shuffle_party import config
 from shuffle_party.mixer import Mixer
 from shuffle_party.lighting import Lighting
 from shuffle_party.display import Display
 from shuffle_party.track_picker import TrackPicker
-
-
-# Configuration — tweak these values at the top of the file
-CONFIG = {
-    "set_duration_seconds": 15 * 60,  # 15 minutes per DJ set
-    "dj_channel": 1,                  # XR12 channel for DJ input
-    "xr12_host": "192.168.1.100",
-    "xr12_port": 10023,
-    "qlc_host": "127.0.0.1",
-    "qlc_port": 7700,
-    "tracks_dir": "./tracks/",
-    "fade_duration_seconds": 3.0,
-}
 
 
 class State(Enum):
@@ -36,17 +24,17 @@ class ShuffleParty:
     def __init__(self) -> None:
         self.state = State.DJ_SET
         self.mixer = Mixer(
-            host=CONFIG["xr12_host"],
-            port=CONFIG["xr12_port"],
-            channel=CONFIG["dj_channel"],
-            fade_duration=CONFIG["fade_duration_seconds"],
+            host=config.XR12_HOST,
+            port=config.XR12_PORT,
+            channel=config.DJ_CHANNEL,
+            fade_duration=config.FADE_DURATION_SECONDS,
         )
         self.lighting = Lighting(
-            host=CONFIG["qlc_host"],
-            port=CONFIG["qlc_port"],
+            host=config.QLC_HOST,
+            port=config.QLC_PORT,
         )
-        self.display = Display(set_duration=CONFIG["set_duration_seconds"])
-        self.track_picker = TrackPicker(CONFIG["tracks_dir"])
+        self.display = Display(set_duration=config.SET_DURATION_SECONDS)
+        self.track_picker = TrackPicker(config.TRACKS_DIR)
 
     def on_timer_expired(self) -> str | None:
         """Called when the DJ set countdown reaches 00:00. Returns the track to play."""

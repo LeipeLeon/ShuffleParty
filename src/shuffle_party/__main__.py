@@ -7,7 +7,7 @@ display rendering, audio playback, and hardware I/O.
 import sys
 import pygame
 
-from shuffle_party.app import ShuffleParty, State, CONFIG
+from shuffle_party.app import ShuffleParty, State
 
 # Pygame custom events
 TIMER_TICK = pygame.USEREVENT + 1
