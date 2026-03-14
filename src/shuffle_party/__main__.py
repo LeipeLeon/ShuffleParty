@@ -92,6 +92,9 @@ def run() -> None:
     crossfade_start = 0.0
     crossfading = False
 
+    import signal
+    signal.signal(signal.SIGINT, lambda *_: pygame.event.post(pygame.event.Event(pygame.QUIT)))
+
     running = True
     while running:
         for event in pygame.event.get():
