@@ -90,11 +90,7 @@ class ControlPanel:
         # Set by main loop
         self.crossfading = False
 
-        # Button hover
-        self._hover_btn: str | None = None
-
         # Dynamic layout rects (updated each draw)
-        self._btn_rect = pygame.Rect(0, 0, 0, 0)
         self._dur_slider_rect = pygame.Rect(0, 0, 0, 0)
         self._vol_slider_rect = pygame.Rect(0, 0, 0, 0)
         self._waveform_rect = pygame.Rect(0, 0, 0, 0)
@@ -260,12 +256,6 @@ class ControlPanel:
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             x, y = event.pos
-            if self._btn_rect.collidepoint(x, y):
-                if self.party.state == State.IDLE:
-                    self._start_dj = True
-                else:
-                    self._fade_out_now = True
-                return
             if self._dur_slider_rect.collidepoint(x, y):
                 self._dragging = "duration"
                 self._update_slider("duration", x, self._dur_slider_rect)
@@ -318,7 +308,6 @@ class ControlPanel:
 
         elif event.type == pygame.MOUSEMOTION:
             x, y = event.pos
-            self._hover_btn = "btn" if self._btn_rect.collidepoint(x, y) else None
             if self._dragging == "duration":
                 self._update_slider("duration", x, self._dur_slider_rect)
             elif self._dragging == "volume":
@@ -370,21 +359,6 @@ class ControlPanel:
         time_text = self._font_big.render(time_str, True, TEXT)
         surf.blit(time_text, (w - time_text.get_width() - 12, y))
         y = 55
-
-        # -- Button --
-        self._btn_rect = pygame.Rect(10, y, w - 20, 36)
-        btn = self._btn_rect
-        color = BTN_HOVER if self._hover_btn == "btn" else BTN_COLOR
-        pygame.draw.rect(surf, color, btn, border_radius=4)
-        if state == State.IDLE:
-            label = "Start DJ Set"
-        elif state == State.SHUFFLE:
-            label = "Fade Track Out Now"
-        else:
-            label = "End DJ Set Now"
-        btn_text = self._font_med.render(label, True, TEXT)
-        surf.blit(btn_text, btn_text.get_rect(center=btn.center))
-        y = 100
 
         # -- Duration slider --
         self._draw_section_label(surf, "Set Duration", y)
