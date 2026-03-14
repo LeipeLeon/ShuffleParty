@@ -6,6 +6,7 @@ and hardware I/O.
 """
 
 import logging
+import os
 import sys
 import time
 
@@ -53,6 +54,8 @@ def start_shuffle(party, control) -> None:
             pygame.mixer.music.play()
             # Start at fadein cue if available
             if control._fadein_cue_ms > 0:
+                control._getpos_at_seek_ms = pygame.mixer.music.get_pos()
+                control._seek_target_ms = control._fadein_cue_ms
                 pygame.mixer.music.set_pos(control._fadein_cue_ms / 1000.0)
         except Exception as e:
             logging.warning(f"Could not play {party.pending_track} — {e!r}")
@@ -70,10 +73,15 @@ def run() -> None:
 
     clock = pygame.time.Clock()
 
-    # Set window icon for task switcher
+    # Set macOS dock icon
     try:
-        icon = pygame.image.load("icon.png")
-        pygame.display.set_icon(icon)
+        from AppKit import NSApplication, NSImage
+        icon_path = os.path.join(os.path.dirname(__file__), "..", "..", "icon.png")
+        if not os.path.exists(icon_path):
+            icon_path = "icon.png"
+        ns_image = NSImage.alloc().initWithContentsOfFile_(os.path.abspath(icon_path))
+        if ns_image:
+            NSApplication.sharedApplication().setApplicationIconImage_(ns_image)
     except Exception:
         pass
 

@@ -67,7 +67,11 @@ class ControlPanel:
         self._duration_ms = 0
         self._fadeout_cue_ms = -1
         self._waveform: list[float] = []
-        self._seek_offset_ms = 0  # offset added to get_pos() after seeking
+        # Seek tracking: get_pos() returns time since play(), not absolute position.
+        # After set_pos(), get_pos() keeps counting from where it was.
+        # We track the absolute target and the get_pos() reading at seek time.
+        self._seek_target_ms = 0     # absolute track position we seeked to
+        self._getpos_at_seek_ms = 0  # get_pos() value at the moment of seek
         self._cover_art: pygame.Surface | None = None
         self._placeholder = self._make_placeholder()
 
@@ -103,12 +107,13 @@ class ControlPanel:
         return surf
 
     def _playback_pos_ms(self) -> int:
-        """Current playback position in ms, accounting for seeks. Returns -1 if not loaded."""
+        """Current absolute playback position in ms. Returns -1 if not loaded."""
         if not self._track_name:
             return -1
         if not pygame.mixer.music.get_busy() and not self._paused:
-            return self._seek_offset_ms
-        return pygame.mixer.music.get_pos() + self._seek_offset_ms
+            return self._seek_target_ms
+        elapsed = max(0, pygame.mixer.music.get_pos() - self._getpos_at_seek_ms)
+        return self._seek_target_ms + elapsed
 
     # -- Public interface (same as before) --
 
@@ -142,7 +147,8 @@ class ControlPanel:
     def set_track_name(self, track_path: str) -> None:
         """Load track metadata, cover art, and waveform."""
         self._fadeout_cue_triggered = False
-        self._seek_offset_ms = 0
+        self._seek_target_ms = 0
+        self._getpos_at_seek_ms = 0
         self._paused = False
         self._waveform = []
         self._cover_art = None
@@ -200,7 +206,7 @@ class ControlPanel:
 
             # Place playhead at fadein point so playback starts there
             if self._fadein_cue_ms > 0:
-                self._seek_offset_ms = self._fadein_cue_ms
+                self._seek_target_ms = self._fadein_cue_ms
                 logger.info(f"Fadein cue at {self._fadein_cue_ms / 1000:.1f}s for {name}")
             if self._fadeout_cue_ms >= 0:
                 logger.info(f"Fadeout cue at {self._fadeout_cue_ms / 1000:.1f}s for {name}")
@@ -278,8 +284,9 @@ class ControlPanel:
                 t = (x - self._waveform_rect.x) / self._waveform_rect.width
                 seek_ms = int(t * self._duration_ms)
                 if pygame.mixer.music.get_busy() or self._paused:
+                    self._getpos_at_seek_ms = pygame.mixer.music.get_pos()
+                    self._seek_target_ms = seek_ms
                     pygame.mixer.music.set_pos(seek_ms / 1000.0)
-                    self._seek_offset_ms = seek_ms
                 return
 
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
