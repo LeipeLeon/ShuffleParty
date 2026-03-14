@@ -14,7 +14,7 @@ class TestMixer:
             with patch("shuffle_party.mixer.time"):
                 return Mixer(
                     host="192.168.1.100", port=10023,
-                    dj_channels=[1, 2], shuffle_channel=3,
+                    dj_channels=[1, 2], shuffle_channels=[3, 4],
                     fade_duration=3.0,
                 )
 
@@ -79,7 +79,7 @@ class TestMixer:
         assert values[0] == pytest.approx(1.0)
         assert values[-1] == pytest.approx(0.0)
 
-    def test_fade_sends_to_all_three_channels(self):
+    def test_fade_sends_to_all_four_channels(self):
         mock_xair = MagicMock()
         mock_client = MagicMock()
         mock_xair.connect.return_value = mock_client
@@ -89,7 +89,10 @@ class TestMixer:
             mixer.fade_out()
 
         addresses = set(c.args[0] for c in mock_client.send.call_args_list)
-        assert addresses == {"/ch/01/mix/fader", "/ch/02/mix/fader", "/ch/03/mix/fader"}
+        assert addresses == {
+            "/ch/01/mix/fader", "/ch/02/mix/fader",
+            "/ch/03/mix/fader", "/ch/04/mix/fader",
+        }
 
     def test_channel_numbers_are_zero_padded(self):
         mock_xair = MagicMock()
@@ -100,13 +103,16 @@ class TestMixer:
             with patch("shuffle_party.mixer.time"):
                 mixer = Mixer(
                     host="x", port=1,
-                    dj_channels=[5, 6], shuffle_channel=9,
+                    dj_channels=[5, 6], shuffle_channels=[9, 10],
                     fade_duration=1.0,
                 )
                 mixer.fade_out()
 
         addresses = set(c.args[0] for c in mock_client.send.call_args_list)
-        assert addresses == {"/ch/05/mix/fader", "/ch/06/mix/fader", "/ch/09/mix/fader"}
+        assert addresses == {
+            "/ch/05/mix/fader", "/ch/06/mix/fader",
+            "/ch/09/mix/fader", "/ch/10/mix/fader",
+        }
 
     def test_graceful_degradation_when_xr12_unreachable(self):
         """Mixer should not crash when XR12 is unreachable."""
@@ -116,7 +122,7 @@ class TestMixer:
         with patch.dict("sys.modules", {"xair_api": mock_xair}):
             mixer = Mixer(
                 host="x", port=1,
-                dj_channels=[1, 2], shuffle_channel=3,
+                dj_channels=[1, 2], shuffle_channels=[3, 4],
                 fade_duration=1.0,
             )
 

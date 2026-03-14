@@ -14,13 +14,13 @@ class Mixer:
         host: str,
         port: int,
         dj_channels: list[int],
-        shuffle_channel: int,
+        shuffle_channels: list[int],
         fade_duration: float,
     ) -> None:
         self.host = host
         self.port = port
         self.dj_channels = dj_channels
-        self.shuffle_channel = shuffle_channel
+        self.shuffle_channels = shuffle_channels
         self.fade_duration = fade_duration
         self._client = None
         self._connect()
@@ -61,6 +61,7 @@ class Mixer:
             shuffle_value = shuffle_start + (shuffle_end - shuffle_start) * t
             for ch in self.dj_channels:
                 self._client.send(f"/ch/{ch:02d}/mix/fader", dj_value)
-            self._client.send(f"/ch/{self.shuffle_channel:02d}/mix/fader", shuffle_value)
+            for ch in self.shuffle_channels:
+                self._client.send(f"/ch/{ch:02d}/mix/fader", shuffle_value)
             if i < steps:
                 time.sleep(step_time)
