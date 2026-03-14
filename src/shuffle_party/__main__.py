@@ -67,9 +67,11 @@ def run() -> None:
     pygame.init()
     pygame.mixer.init()
 
-    # Detect multi-display: reTerminal built-in + external HDMI
+    # Detect displays
     num_displays = pygame.display.get_num_displays()
     multi_display = num_displays >= 2
+    primary_size = pygame.display.get_desktop_sizes()[0]
+    is_reterminal = primary_size == (720, 1280)
 
     display_window = None
     if multi_display:
@@ -102,7 +104,7 @@ def run() -> None:
     party = ShuffleParty()
     control = ControlPanel(
         party,
-        fullscreen=multi_display,
+        fullscreen=multi_display or is_reterminal,
         display_index=0 if multi_display else None,
     )
     buttons = Buttons(config.BUTTON_DEVICE)
