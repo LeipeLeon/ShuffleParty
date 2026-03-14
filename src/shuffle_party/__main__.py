@@ -147,6 +147,10 @@ def run() -> None:
         else:
             fade_t = 1.0
 
+        # Crossfade lighting
+        if crossfading:
+            party.lighting.update(fade_t)
+
         # Crossfade the shuffle track audio volume
         if crossfading and pygame.mixer.music.get_busy():
             if party.state == State.SHUFFLE:

@@ -27,6 +27,22 @@ class TestLighting:
         client.send_message.assert_any_call("/1", 0)
         client.send_message.assert_any_call("/2", 255)
 
+    def test_update_sends_interpolated_values(self):
+        lighting, client = self._make_lighting()
+        lighting.activate_shuffle()  # target: /1=0, /2=255
+        client.reset_mock()
+        lighting.update(0.5)  # midpoint
+        client.send_message.assert_any_call("/1", 127)
+        client.send_message.assert_any_call("/2", 127)
+
+    def test_update_at_completion(self):
+        lighting, client = self._make_lighting()
+        lighting.activate_shuffle()
+        client.reset_mock()
+        lighting.update(1.0)
+        client.send_message.assert_any_call("/1", 0)
+        client.send_message.assert_any_call("/2", 255)
+
     def test_graceful_degradation_when_qlc_unreachable(self):
         """Lighting should not crash when QLC+ is unreachable."""
         with patch("shuffle_party.lighting.SimpleUDPClient", side_effect=Exception("unreachable")):
@@ -35,3 +51,4 @@ class TestLighting:
         # Should not raise
         lighting.activate_dj_set()
         lighting.activate_shuffle()
+        lighting.update(0.5)
