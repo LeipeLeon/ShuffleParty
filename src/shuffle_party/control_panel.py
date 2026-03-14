@@ -378,8 +378,8 @@ class ControlPanel:
 
         time_label = self._get_time_label()
         if time_label:
-            t_text = self._font_small.render(time_label, True, TEXT_DIM)
-            surf.blit(t_text, (100, y + 22))
+            t_text = self._font_med.render(time_label, True, TEXT)
+            surf.blit(t_text, (100, y + 20))
 
         # Pause/play button (SHUFFLE only) and Skip button (DJ_SET only)
         btn_y = y + 42
