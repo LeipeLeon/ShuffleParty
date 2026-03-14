@@ -92,6 +92,9 @@ def run() -> None:
                 control.set_track_name("")
                 party.on_shuffle_track_ended()
 
+        # Advance mixer crossfade
+        party.mixer.tick()
+
         # Sync shared state with control panel
         control.update()
 

@@ -1,83 +1,87 @@
 """Tests for XR12 mixer control."""
 
 import pytest
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import patch, MagicMock
 
 from shuffle_party.mixer import Mixer
 
 
 class TestMixer:
 
-    def _make_mixer(self, mock_xair=None):
-        """Create a Mixer with mocked xair_api."""
+    def _make_mixer(self, mock_xair=None, **kwargs):
+        """Create a Mixer with mocked xair_api and time."""
         with patch.dict("sys.modules", {"xair_api": mock_xair or MagicMock()}):
-            with patch("shuffle_party.mixer.time"):
-                return Mixer(
-                    host="192.168.1.100", port=10023,
-                    dj_channels=[1, 2], shuffle_channels=[3, 4],
-                    fade_duration=3.0,
-                )
+            return Mixer(
+                host=kwargs.get("host", "192.168.1.100"),
+                port=kwargs.get("port", 10023),
+                dj_channels=kwargs.get("dj_channels", [1, 2]),
+                shuffle_channels=kwargs.get("shuffle_channels", [3, 4]),
+                fade_duration=kwargs.get("fade_duration", 3.0),
+            )
+
+    def _run_fade_to_completion(self, mixer, mock_time):
+        """Simulate time passing to complete a fade."""
+        # Start at t=0, then jump past fade_duration
+        mock_time.monotonic.return_value = 0.0
+        mixer.tick()
+        mock_time.monotonic.return_value = mixer.fade_duration + 0.1
+        mixer.tick()
 
     def _calls_for_channel(self, mock_client, channel_num):
         """Extract OSC calls for a specific channel."""
         addr = f"/ch/{channel_num:02d}/mix/fader"
         return [c for c in mock_client.send.call_args_list if c.args[0] == addr]
 
-    def test_fade_out_dj_decreases(self):
+    def test_fade_out_starts_and_completes(self):
         mock_xair = MagicMock()
         mock_client = MagicMock()
         mock_xair.connect.return_value = mock_client
         mixer = self._make_mixer(mock_xair)
 
-        with patch("shuffle_party.mixer.time"):
+        with patch("shuffle_party.mixer.time") as mock_time:
+            mock_time.monotonic.return_value = 0.0
+            mixer.fade_out()
+            assert mixer.is_fading
+            assert mixer.dj_level == pytest.approx(1.0)
+            assert mixer.shuffle_level == pytest.approx(0.0)
+
+            mock_time.monotonic.return_value = mixer.fade_duration + 0.1
+            mixer.tick()
+            assert not mixer.is_fading
+            assert mixer.dj_level == pytest.approx(0.0)
+            assert mixer.shuffle_level == pytest.approx(1.0)
+
+    def test_fade_in_starts_and_completes(self):
+        mock_xair = MagicMock()
+        mock_client = MagicMock()
+        mock_xair.connect.return_value = mock_client
+        mixer = self._make_mixer(mock_xair)
+
+        with patch("shuffle_party.mixer.time") as mock_time:
+            mock_time.monotonic.return_value = 0.0
+            mixer.fade_in()
+            assert mixer.dj_level == pytest.approx(0.0)
+            assert mixer.shuffle_level == pytest.approx(1.0)
+
+            mock_time.monotonic.return_value = mixer.fade_duration + 0.1
+            mixer.tick()
+            assert mixer.dj_level == pytest.approx(1.0)
+            assert mixer.shuffle_level == pytest.approx(0.0)
+
+    def test_fade_midpoint_has_intermediate_values(self):
+        mock_xair = MagicMock()
+        mock_client = MagicMock()
+        mock_xair.connect.return_value = mock_client
+        mixer = self._make_mixer(mock_xair)
+
+        with patch("shuffle_party.mixer.time") as mock_time:
+            mock_time.monotonic.return_value = 0.0
             mixer.fade_out()
 
-        values = [c.args[1] for c in self._calls_for_channel(mock_client, 1)]
-        assert values[0] == pytest.approx(1.0)
-        assert values[-1] == pytest.approx(0.0)
-        for i in range(1, len(values)):
-            assert values[i] <= values[i - 1]
-
-    def test_fade_out_shuffle_increases(self):
-        mock_xair = MagicMock()
-        mock_client = MagicMock()
-        mock_xair.connect.return_value = mock_client
-        mixer = self._make_mixer(mock_xair)
-
-        with patch("shuffle_party.mixer.time"):
-            mixer.fade_out()
-
-        values = [c.args[1] for c in self._calls_for_channel(mock_client, 3)]
-        assert values[0] == pytest.approx(0.0)
-        assert values[-1] == pytest.approx(1.0)
-        for i in range(1, len(values)):
-            assert values[i] >= values[i - 1]
-
-    def test_fade_in_dj_increases(self):
-        mock_xair = MagicMock()
-        mock_client = MagicMock()
-        mock_xair.connect.return_value = mock_client
-        mixer = self._make_mixer(mock_xair)
-
-        with patch("shuffle_party.mixer.time"):
-            mixer.fade_in()
-
-        values = [c.args[1] for c in self._calls_for_channel(mock_client, 1)]
-        assert values[0] == pytest.approx(0.0)
-        assert values[-1] == pytest.approx(1.0)
-
-    def test_fade_in_shuffle_decreases(self):
-        mock_xair = MagicMock()
-        mock_client = MagicMock()
-        mock_xair.connect.return_value = mock_client
-        mixer = self._make_mixer(mock_xair)
-
-        with patch("shuffle_party.mixer.time"):
-            mixer.fade_in()
-
-        values = [c.args[1] for c in self._calls_for_channel(mock_client, 3)]
-        assert values[0] == pytest.approx(1.0)
-        assert values[-1] == pytest.approx(0.0)
+            mock_time.monotonic.return_value = mixer.fade_duration / 2
+            mixer.tick()
+            assert mixer.dj_level == pytest.approx(0.5)
+            assert mixer.shuffle_level == pytest.approx(0.5)
 
     def test_fade_sends_to_all_four_channels(self):
         mock_xair = MagicMock()
@@ -85,7 +89,8 @@ class TestMixer:
         mock_xair.connect.return_value = mock_client
         mixer = self._make_mixer(mock_xair)
 
-        with patch("shuffle_party.mixer.time"):
+        with patch("shuffle_party.mixer.time") as mock_time:
+            mock_time.monotonic.return_value = 0.0
             mixer.fade_out()
 
         addresses = set(c.args[0] for c in mock_client.send.call_args_list)
@@ -98,15 +103,11 @@ class TestMixer:
         mock_xair = MagicMock()
         mock_client = MagicMock()
         mock_xair.connect.return_value = mock_client
+        mixer = self._make_mixer(mock_xair, dj_channels=[5, 6], shuffle_channels=[9, 10])
 
-        with patch.dict("sys.modules", {"xair_api": mock_xair}):
-            with patch("shuffle_party.mixer.time"):
-                mixer = Mixer(
-                    host="x", port=1,
-                    dj_channels=[5, 6], shuffle_channels=[9, 10],
-                    fade_duration=1.0,
-                )
-                mixer.fade_out()
+        with patch("shuffle_party.mixer.time") as mock_time:
+            mock_time.monotonic.return_value = 0.0
+            mixer.fade_out()
 
         addresses = set(c.args[0] for c in mock_client.send.call_args_list)
         assert addresses == {
@@ -126,7 +127,16 @@ class TestMixer:
                 fade_duration=1.0,
             )
 
-        # Should not raise
-        with patch("shuffle_party.mixer.time"):
+        with patch("shuffle_party.mixer.time") as mock_time:
+            mock_time.monotonic.return_value = 0.0
             mixer.fade_out()
+            mock_time.monotonic.return_value = 2.0
+            mixer.tick()
             mixer.fade_in()
+            mock_time.monotonic.return_value = 4.0
+            mixer.tick()
+
+    def test_tick_does_nothing_when_not_fading(self):
+        mixer = self._make_mixer()
+        mixer.tick()  # should not raise
+        assert not mixer.is_fading
