@@ -80,8 +80,18 @@ def run() -> None:
         control.update()
 
         # Handle fade out now button
-        if control.should_fade_out_now() and party.state == State.SHUFFLE:
-            pygame.mixer.music.fadeout(int(party.mixer.fade_duration * 1000))
+        if control.should_fade_out_now():
+            if party.state == State.SHUFFLE:
+                pygame.mixer.music.fadeout(int(party.mixer.fade_duration * 1000))
+            elif party.state == State.DJ_SET:
+                track = party.on_timer_expired()
+                if track:
+                    control.set_track_name(track)
+                    try:
+                        pygame.mixer.music.load(track)
+                        pygame.mixer.music.play()
+                    except Exception as e:
+                        print(f"Warning: Could not play {track} — {e}")
 
         # Render
         screen.fill(BG_COLOR)

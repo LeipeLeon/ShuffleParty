@@ -66,7 +66,8 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
     def on_fade_out_now():
         shared.fade_out_now.value = 1
 
-    fade_btn = ttk.Button(root, text="Fade Track Out Now", command=on_fade_out_now)
+    fade_btn_var = tk.StringVar(value="Fade Out Now")
+    fade_btn = ttk.Button(root, textvariable=fade_btn_var, command=on_fade_out_now)
     fade_btn.pack(fill="x", **pad)
 
     # -- Set duration control --
@@ -166,8 +167,10 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
 
     def poll():
         # State
-        state_name = "SHUFFLE" if shared.state.value == 1 else "DJ SET"
+        is_shuffle = shared.state.value == 1
+        state_name = "SHUFFLE" if is_shuffle else "DJ SET"
         state_var.set(state_name)
+        fade_btn_var.set("Fade Track Out Now" if is_shuffle else "End DJ Set Now")
 
         # Remaining time
         rem = shared.remaining_seconds.value
