@@ -27,10 +27,13 @@ class Lighting:
         """Turn on FX lights, turn off pin spots."""
         if self._client is None:
             return
-        self._client.send_message("/qlc/scene/dj_set", 1.0)
+        # Input channel 1 = DJ Set button, channel 2 = Shuffle button
+        self._client.send_message("/1", 255)
+        self._client.send_message("/2", 0)
 
     def activate_shuffle(self) -> None:
         """Turn off FX lights, turn on pin spots."""
         if self._client is None:
             return
-        self._client.send_message("/qlc/scene/shuffle", 1.0)
+        self._client.send_message("/1", 0)
+        self._client.send_message("/2", 255)
