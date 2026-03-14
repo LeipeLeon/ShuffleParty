@@ -182,23 +182,13 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
         seconds = rem % 60
         remaining_var.set(f"{minutes:02d}:{seconds:02d}")
 
-        # MP3 waveform + playhead
-        pos = shared.mp3_pos_ms.value
+        # Track name and waveform
+        name = shared.track_name.value.decode("utf-8", errors="ignore").rstrip("\x00")
         duration = shared.mp3_duration_ms.value
-        if pos >= 0 and duration > 0:
-            pos_s = pos / 1000
-            dur_s = duration / 1000
-            rem_s = max(0, dur_s - pos_s)
+        pos = shared.mp3_pos_ms.value
 
-            rem_m = int(rem_s) // 60
-            rem_sec = int(rem_s) % 60
-            dur_m = int(dur_s) // 60
-            dur_sec = int(dur_s) % 60
-            mp3_time_var.set(f"-{rem_m:02d}:{rem_sec:02d} / {dur_m:02d}:{dur_sec:02d}")
-
-            name = shared.track_name.value.decode("utf-8", errors="ignore").rstrip("\x00")
-            if name:
-                track_name_var.set(name)
+        if name:
+            track_name_var.set(name)
 
             # Draw waveform bars once when a new track loads
             if shared.waveform_ready.value and not waveform_drawn[0]:
@@ -216,19 +206,37 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
                     )
                 waveform_drawn[0] = True
 
-            # Draw playhead
-            waveform_canvas.delete("playhead")
-            if duration > 0:
+            # Playhead and time display (only while playing)
+            if pos >= 0 and duration > 0:
+                pos_s = pos / 1000
+                dur_s = duration / 1000
+                rem_s = max(0, dur_s - pos_s)
+
+                rem_m = int(rem_s) // 60
+                rem_sec = int(rem_s) % 60
+                dur_m = int(dur_s) // 60
+                dur_sec = int(dur_s) % 60
+                mp3_time_var.set(f"-{rem_m:02d}:{rem_sec:02d} / {dur_m:02d}:{dur_sec:02d}")
+
+                waveform_canvas.delete("playhead")
                 canvas_w = waveform_canvas.winfo_width() or 460
                 x = (pos / duration) * canvas_w
                 waveform_canvas.create_line(
                     x, 0, x, waveform_height,
                     fill="#ff4444", width=2, tags="playhead",
                 )
+            else:
+                waveform_canvas.delete("playhead")
+                if duration > 0:
+                    dur_m = duration // 60000
+                    dur_sec = (duration // 1000) % 60
+                    mp3_time_var.set(f"Ready — {dur_m:02d}:{dur_sec:02d}")
+                else:
+                    mp3_time_var.set("Ready")
         else:
             waveform_canvas.delete("waveform", "playhead")
             waveform_drawn[0] = False
-            track_name_var.set("No track playing")
+            track_name_var.set("No track loaded")
             mp3_time_var.set("")
 
         # Channel levels
