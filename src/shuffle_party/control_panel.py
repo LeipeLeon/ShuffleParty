@@ -436,7 +436,7 @@ class ControlPanel:
         y += 18
         h = surf.get_height()
         btn_h = 56
-        fader_h = h - btn_h - y - 8
+        fader_h = h - btn_h - y - 30
         faders = [
             ("Master", self._volume_value, ACCENT, True),
             ("Shuffle", self.party.mixer.shuffle_level, ACCENT, False),
