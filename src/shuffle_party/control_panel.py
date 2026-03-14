@@ -81,6 +81,7 @@ class ControlPanel:
         self._btn_rect = pygame.Rect(0, 0, 0, 0)
         self._dur_slider_rect = pygame.Rect(0, 0, 0, 0)
         self._vol_slider_rect = pygame.Rect(0, 0, 0, 0)
+        self._waveform_rect = pygame.Rect(0, 0, 0, 0)
 
     def _make_placeholder(self) -> pygame.Surface:
         """Create an 80x80 placeholder surface with a music note icon."""
@@ -231,6 +232,12 @@ class ControlPanel:
                 self._dragging = "volume"
                 self._update_volume_slider(y)
                 return
+            if self._waveform_rect.collidepoint(x, y) and self._duration_ms > 0:
+                t = (x - self._waveform_rect.x) / self._waveform_rect.width
+                seek_ms = int(t * self._duration_ms)
+                if pygame.mixer.music.get_busy():
+                    pygame.mixer.music.set_pos(seek_ms / 1000.0)
+                return
 
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             self._dragging = None
@@ -344,6 +351,7 @@ class ControlPanel:
 
         # Waveform
         wf_rect = pygame.Rect(12, y, WIDTH - 24, 60)
+        self._waveform_rect = wf_rect
         pygame.draw.rect(surf, PANEL_BG, wf_rect)
         if self._waveform:
             self._draw_waveform(surf, wf_rect)
