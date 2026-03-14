@@ -8,6 +8,7 @@ dependencies = [
     "python-osc",
     "xair-api",
     "mutagen",
+    "pyobjc-framework-cocoa>=12.1",
 ]
 
 [dependency-groups]
