@@ -7,9 +7,9 @@ Two states cycling forever:
 from enum import Enum, auto
 
 from shuffle_party import config
-from shuffle_party.mixer import Mixer
-from shuffle_party.lighting import Lighting
 from shuffle_party.display import Display
+from shuffle_party.lighting import Lighting
+from shuffle_party.mixer import Mixer
 from shuffle_party.track_picker import TrackPicker
 
 

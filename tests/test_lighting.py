@@ -1,7 +1,6 @@
 """Tests for QLC+ lighting control."""
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from shuffle_party.lighting import Lighting
 
@@ -11,7 +10,7 @@ class TestLighting:
     def _make_lighting(self):
         """Create Lighting with mocked python-osc."""
         mock_client = MagicMock()
-        with patch("shuffle_party.lighting.SimpleUDPClient", return_value=mock_client) as mock_cls:
+        with patch("shuffle_party.lighting.SimpleUDPClient", return_value=mock_client):
             lighting = Lighting(host="127.0.0.1", port=7700)
         return lighting, mock_client
 

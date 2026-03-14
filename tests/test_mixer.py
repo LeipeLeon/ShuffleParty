@@ -1,7 +1,8 @@
 """Tests for XR12 mixer control."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 from shuffle_party.mixer import Mixer
 

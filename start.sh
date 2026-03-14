@@ -9,23 +9,17 @@ if [ -f .env ]; then
     set +a
 fi
 
-if [ ! -d .venv ]; then
-    echo "Creating virtual environment..."
-    python3 -m venv .venv
+if ! command -v uv &>/dev/null; then
+    echo "Error: uv not found. Install with:"
+    echo "  curl -LsSf https://astral.sh/uv/install.sh | sh"
+    exit 1
 fi
 
-source .venv/bin/activate
-
-if ! python -c "import tkinter" 2>/dev/null; then
+if ! uv run python -c "import tkinter" 2>/dev/null; then
     echo "Error: tkinter not found."
     echo "  macOS:         brew install python-tk@3.14"
     echo "  Debian/RPi:    sudo apt install python3-tk"
     exit 1
 fi
 
-if ! python -c "import shuffle_party" 2>/dev/null; then
-    echo "Installing dependencies..."
-    pip install -e .
-fi
-
-python -m shuffle_party
+uv run python -m shuffle_party

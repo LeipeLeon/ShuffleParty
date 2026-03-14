@@ -1,8 +1,8 @@
 """Tests for shuffle track selection."""
 
 import os
+
 import pytest
-from unittest.mock import patch
 
 from shuffle_party.track_picker import TrackPicker
 
@@ -39,7 +39,7 @@ class TestTrackPicker:
     def test_reshuffles_after_all_played(self, tracks_dir):
         picker = TrackPicker(tracks_dir)
         # Play through all 3
-        first_round = [picker.pick() for _ in range(3)]
+        [picker.pick() for _ in range(3)]
         # Pick one more — should work (reshuffled)
         track = picker.pick()
         assert track.endswith(".mp3")

@@ -19,7 +19,9 @@ WAVEFORM_BINS = 200
 class SharedState:
     """Shared state between the pygame process and the control panel process."""
 
-    def __init__(self, set_duration: int, dj_channels: list[int], shuffle_channels: list[int]) -> None:
+    def __init__(
+        self, set_duration: int, dj_channels: list[int], shuffle_channels: list[int],
+    ) -> None:
         # Read by control panel (updated by main process)
         self.state = mp.Value("i", 0)  # 0 = DJ_SET, 1 = SHUFFLE
         self.remaining_seconds = mp.Value("i", set_duration)

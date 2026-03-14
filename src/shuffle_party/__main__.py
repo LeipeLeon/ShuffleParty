@@ -7,10 +7,11 @@ display rendering, audio playback, and hardware I/O.
 import logging
 import sys
 import time
+
 import pygame
 
-from shuffle_party.app import ShuffleParty, State
 from shuffle_party import config
+from shuffle_party.app import ShuffleParty, State
 from shuffle_party.control_panel import ControlPanel
 
 logging.basicConfig(

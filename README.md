@@ -72,21 +72,20 @@ brew install python-tk@3.14
 sudo apt install python3-tk
 ```
 
-Then install the project:
+Install [uv](https://docs.astral.sh/uv/) and set up the project:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv sync --group dev
 ```
 
 Run with:
 
 ```bash
-python -m shuffle_party
+uv run python -m shuffle_party
 ```
 
-Or just use the startup script (handles venv + deps automatically):
+Or just use the startup script (handles deps automatically):
 
 ```bash
 ./start.sh
