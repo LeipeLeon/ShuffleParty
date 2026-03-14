@@ -271,7 +271,9 @@ def run() -> None:
 
             # Draw timer layer
             if timer_alpha > 0:
-                font = pygame.font.Font(None, int(h * 0.7))
+                font = pygame.font.SysFont(
+                    "SF Mono,DejaVu Sans Mono,Consolas,monospace", int(h * 0.7),
+                )
                 time_str = party.display.format_time()
                 text_surface = font.render(time_str, True, TIMER_COLOR)
                 text_surface.set_alpha(timer_alpha)

@@ -489,7 +489,9 @@ class ControlPanel:
             rem = self.party.display.remaining_seconds
             time_str = f"{rem // 60:02d}:{rem % 60:02d}"
             timer_font_size = min(int(fader_h * 0.6), int(timer_w * 0.4))
-            timer_font = pygame.font.Font(None, max(40, timer_font_size))
+            timer_font = pygame.font.SysFont(
+                "SF Mono,DejaVu Sans Mono,Consolas,monospace", max(40, timer_font_size),
+            )
             timer_text = timer_font.render(time_str, True, TEXT)
             timer_text.set_alpha(timer_alpha)
             surf.blit(timer_text, timer_text.get_rect(center=timer_rect.center))
