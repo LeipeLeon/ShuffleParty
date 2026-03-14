@@ -81,6 +81,8 @@ def run() -> None:
         display_window = pygame.Window(
             "Shuffle Partey", size=(270, 180), resizable=True,
         )
+        # Position display window next to control panel (480px wide + gap)
+        display_window.position = (510, 50)
 
     clock = pygame.time.Clock()
 
@@ -125,6 +127,7 @@ def run() -> None:
     prev_state = party.state
     crossfade_start = 0.0
     crossfading = False
+    track_played = False
 
     import signal
     signal.signal(signal.SIGINT, lambda *_: pygame.event.post(pygame.event.Event(pygame.QUIT)))
@@ -149,6 +152,7 @@ def run() -> None:
                     expired = party.display.tick()
                     if expired:
                         start_shuffle(party, control)
+                        track_played = True
 
             elif event.type == SHUFFLE_TRACK_END:
                 if party.state == State.SHUFFLE:
@@ -170,6 +174,7 @@ def run() -> None:
             if party.state == State.DJ_SET:
                 pygame.mixer.music.stop()
                 preload_track(party, control)
+                track_played = False
 
         # Update control panel (fadeout cue check)
         control.update()
