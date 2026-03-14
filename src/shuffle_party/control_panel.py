@@ -493,48 +493,71 @@ class ControlPanel:
         self._vol_slider_rect = pygame.Rect(master_cx - 12, y, 24, fader_h)
         y += fader_h + 8
 
-        # -- Virtual reTerminal buttons (pinned to bottom) --
+        # -- Virtual reTerminal buttons (pinned to bottom, 6 equal columns, last 4 are buttons) --
         h = surf.get_height()
-        btn_h = 48
-        btn_y = h - btn_h - 12
-        margin = 12
-        gap = 10
-        # Three rectangular F-buttons + one circular O button
-        f_btn_w = (w - 2 * margin - 3 * gap - btn_h) // 3  # remaining space for 3 F-buttons
-        hw_buttons = [
-            ("F1", "Vol −", "volume_down"),
-            ("F2", "Vol +", "volume_up"),
-            ("F3", "Skip", "skip_track"),
-        ]
-        bx = margin
+        btn_h = 56
+        btn_y = h - btn_h
+        col_w = w // 6
         self._hw_btn_rects = {}
-        for key, label, action in hw_buttons:
-            rect = pygame.Rect(bx, btn_y, f_btn_w, btn_h)
-            self._hw_btn_rects[action] = rect
-            pygame.draw.rect(surf, BTN_COLOR, rect, border_radius=6)
-            pygame.draw.rect(surf, SLIDER_TRACK, rect, width=1, border_radius=6)
-            key_text = self._font_small.render(key, True, TEXT_DIM)
-            surf.blit(key_text, (rect.centerx - key_text.get_width() // 2, rect.y + 8))
-            label_text = self._font_med.render(label, True, TEXT)
-            surf.blit(label_text, (rect.centerx - label_text.get_width() // 2, rect.y + 24))
-            bx += f_btn_w + gap
 
-        # Circular O button
-        o_radius = btn_h // 2
-        o_cx = bx + o_radius
-        o_cy = btn_y + o_radius
-        o_rect = pygame.Rect(o_cx - o_radius, o_cy - o_radius, btn_h, btn_h)
-        self._hw_btn_rects["crossfade"] = o_rect
-        pygame.draw.circle(surf, BTN_COLOR, (o_cx, o_cy), o_radius)
-        pygame.draw.circle(surf, SLIDER_TRACK, (o_cx, o_cy), o_radius, width=1)
-        o_label = self._font_small.render("O", True, TEXT_DIM)
-        surf.blit(o_label, (o_cx - o_label.get_width() // 2, o_cy - 12))
-        if state == State.IDLE:
-            o_action_text = "Start"
-        else:
-            o_action_text = "Fade"
-        o_text = self._font_med.render(o_action_text, True, TEXT)
-        surf.blit(o_text, (o_cx - o_text.get_width() // 2, o_cy + 2))
+        hw_buttons = [
+            ("volume_down", 2),
+            ("volume_up", 3),
+            ("skip_track", 4),
+            ("crossfade", 5),
+        ]
+        for action, col in hw_buttons:
+            rect = pygame.Rect(col * col_w, btn_y, col_w, btn_h)
+            self._hw_btn_rects[action] = rect
+            # Button background with subtle separator
+            pygame.draw.rect(surf, BTN_COLOR, rect)
+            pygame.draw.line(surf, SLIDER_TRACK, (rect.x, rect.y), (rect.x, rect.bottom), 1)
+            # Draw icon centered in button
+            cx, cy = rect.centerx, rect.centery
+            if action == "volume_down":
+                # Speaker with minus: speaker body + cone + minus sign
+                pygame.draw.rect(surf, TEXT, (cx - 14, cy - 5, 8, 10))
+                pygame.draw.polygon(surf, TEXT, [
+                    (cx - 6, cy - 5), (cx + 2, cy - 12), (cx + 2, cy + 12), (cx - 6, cy + 5),
+                ])
+                pygame.draw.line(surf, TEXT, (cx + 8, cy), (cx + 16, cy), 2)
+            elif action == "volume_up":
+                # Speaker with plus
+                pygame.draw.rect(surf, TEXT, (cx - 14, cy - 5, 8, 10))
+                pygame.draw.polygon(surf, TEXT, [
+                    (cx - 6, cy - 5), (cx + 2, cy - 12), (cx + 2, cy + 12), (cx - 6, cy + 5),
+                ])
+                pygame.draw.line(surf, TEXT, (cx + 8, cy), (cx + 16, cy), 2)
+                pygame.draw.line(surf, TEXT, (cx + 12, cy - 4), (cx + 12, cy + 4), 2)
+            elif action == "skip_track":
+                # Skip forward: double triangle + bar
+                pygame.draw.polygon(surf, TEXT, [
+                    (cx - 10, cy - 10), (cx + 2, cy), (cx - 10, cy + 10),
+                ])
+                pygame.draw.polygon(surf, TEXT, [
+                    (cx + 2, cy - 10), (cx + 14, cy), (cx + 2, cy + 10),
+                ])
+                pygame.draw.rect(surf, TEXT, (cx + 14, cy - 10, 3, 20))
+            elif action == "crossfade":
+                # Two overlapping arrows (crossfade symbol)
+                if state == State.IDLE:
+                    # Play triangle
+                    pygame.draw.polygon(surf, TEXT, [
+                        (cx - 10, cy - 14), (cx + 14, cy), (cx - 10, cy + 14),
+                    ])
+                else:
+                    # Crossing arrows: right arrow on top, left arrow on bottom
+                    pygame.draw.line(surf, TEXT, (cx - 12, cy - 6), (cx + 12, cy - 6), 2)
+                    pygame.draw.polygon(surf, TEXT, [
+                        (cx + 8, cy - 12), (cx + 16, cy - 6), (cx + 8, cy),
+                    ])
+                    pygame.draw.line(surf, TEXT, (cx + 12, cy + 6), (cx - 12, cy + 6), 2)
+                    pygame.draw.polygon(surf, TEXT, [
+                        (cx - 8, cy), (cx - 16, cy + 6), (cx - 8, cy + 12),
+                    ])
+
+        # Top border across all buttons
+        pygame.draw.line(surf, SLIDER_TRACK, (0, btn_y), (w, btn_y), 1)
 
         self.window.flip()
 
