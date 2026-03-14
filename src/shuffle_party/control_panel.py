@@ -561,10 +561,27 @@ class ControlPanel:
             )
             pygame.draw.rect(surf, color, fill_rect, border_radius=3)
 
-        # Handle (only for master)
+        # Fader knob (only for master) — rectangular with grip lines
         if is_master:
             hy = track_rect.bottom - fill_h
-            pygame.draw.circle(surf, TEXT, (cx, hy), 7)
+            knob_w = bar_w + 16
+            knob_h = 20
+            knob_rect = pygame.Rect(cx - knob_w // 2, hy - knob_h // 2, knob_w, knob_h)
+            # Body
+            pygame.draw.rect(surf, (180, 180, 190), knob_rect, border_radius=3)
+            # Darker edge
+            pygame.draw.rect(surf, (120, 120, 130), knob_rect, width=1, border_radius=3)
+            # Center line
+            pygame.draw.line(
+                surf, (80, 80, 90),
+                (knob_rect.x + 6, hy), (knob_rect.right - 6, hy), 1,
+            )
+            # Grip lines above and below center
+            for dy in (-3, 3):
+                pygame.draw.line(
+                    surf, (140, 140, 150),
+                    (knob_rect.x + 6, hy + dy), (knob_rect.right - 6, hy + dy), 1,
+                )
 
         # Value label on top
         val_text = self._font_small.render(f"{int(level * 100)}%", True, TEXT_DIM)
