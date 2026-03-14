@@ -62,6 +62,18 @@ A single Python process running on a Raspberry Pi covers all requirements:
 
 ### Setup
 
+The control panel requires tkinter, which is a system package:
+
+```bash
+# macOS (Homebrew)
+brew install python-tk@3.14
+
+# Debian/Raspberry Pi
+sudo apt install python3-tk
+```
+
+Then install the project:
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
