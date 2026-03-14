@@ -147,6 +147,10 @@ def run() -> None:
         if control.should_start_dj() and party.state == State.IDLE:
             party.start_dj_set()
 
+        # Handle skip track button (load a different track during DJ_SET)
+        if control.should_skip_track() and party.state == State.DJ_SET:
+            preload_track(party, control)
+
         # Handle fade out now button
         if control.should_fade_out_now():
             if party.state == State.SHUFFLE:

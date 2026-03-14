@@ -58,6 +58,7 @@ class ControlPanel:
         # Flags (consumed by main loop)
         self._start_dj = False
         self._fade_out_now = False
+        self._skip_track = False
         self._fadeout_cue_triggered = False
 
         # Track metadata
@@ -84,6 +85,7 @@ class ControlPanel:
         self._vol_slider_rect = pygame.Rect(0, 0, 0, 0)
         self._waveform_rect = pygame.Rect(0, 0, 0, 0)
         self._pause_btn_rect = pygame.Rect(0, 0, 0, 0)
+        self._skip_btn_rect = pygame.Rect(0, 0, 0, 0)
         self._paused = False
 
     def _make_placeholder(self) -> pygame.Surface:
@@ -110,6 +112,12 @@ class ControlPanel:
     def should_start_dj(self) -> bool:
         if self._start_dj:
             self._start_dj = False
+            return True
+        return False
+
+    def should_skip_track(self) -> bool:
+        if self._skip_track:
+            self._skip_track = False
             return True
         return False
 
@@ -244,6 +252,10 @@ class ControlPanel:
                 self._dragging = "volume"
                 self._update_volume_slider(y)
                 return
+            if (self._skip_btn_rect.collidepoint(x, y)
+                    and self.party.state == State.DJ_SET):
+                self._skip_track = True
+                return
             if (self._pause_btn_rect.collidepoint(x, y)
                     and self.party.state == State.SHUFFLE):
                 if self._paused:
@@ -369,9 +381,10 @@ class ControlPanel:
             t_text = self._font_small.render(time_label, True, TEXT_DIM)
             surf.blit(t_text, (100, y + 22))
 
-        # Pause/play button (next to track info)
-        pause_y = y + 42
-        self._pause_btn_rect = pygame.Rect(100, pause_y, 24, 24)
+        # Pause/play button (SHUFFLE only) and Skip button (DJ_SET only)
+        btn_y = y + 42
+        self._pause_btn_rect = pygame.Rect(100, btn_y, 24, 24)
+        self._skip_btn_rect = pygame.Rect(100, btn_y, 80, 24)
         if self._track_name and state == State.SHUFFLE:
             pb = self._pause_btn_rect
             pygame.draw.rect(surf, BTN_COLOR, pb, border_radius=3)
@@ -384,6 +397,11 @@ class ControlPanel:
                 # Pause bars
                 pygame.draw.rect(surf, TEXT, (pb.x + 7, pb.y + 5, 4, 14))
                 pygame.draw.rect(surf, TEXT, (pb.x + 13, pb.y + 5, 4, 14))
+        elif self._track_name and state == State.DJ_SET:
+            sb = self._skip_btn_rect
+            pygame.draw.rect(surf, BTN_COLOR, sb, border_radius=3)
+            skip_text = self._font_small.render("Skip Track", True, TEXT)
+            surf.blit(skip_text, skip_text.get_rect(center=sb.center))
 
         y += 88
 
