@@ -362,8 +362,6 @@ class ControlPanel:
         y = 10
 
         # -- Track info --
-        self._draw_section_label(surf, "Shuffle Track", y)
-        y += 20
 
         # Cover art
         cover = self._cover_art or self._placeholder
