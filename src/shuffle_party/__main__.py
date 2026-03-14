@@ -70,7 +70,7 @@ def run() -> None:
     num_displays = pygame.display.get_num_displays()
     multi_display = num_displays >= 2
     primary_size = pygame.display.get_desktop_sizes()[0]
-    is_reterminal = primary_size == (1280, 720)
+    is_reterminal = primary_size in ((1280, 720), (1280, 800))
 
     display_window = None
     if multi_display:
