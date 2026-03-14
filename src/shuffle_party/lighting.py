@@ -59,6 +59,6 @@ class Lighting:
         """Send OSC float values (0.0–1.0) to QLC+."""
         if self._client is None:
             return
-        logger.debug("Lighting OSC: /1=%.3f, /2=%.3f", dj_val, shuffle_val)
-        self._client.send_message("/1", float(dj_val))
-        self._client.send_message("/2", float(shuffle_val))
+        logger.debug("Lighting OSC: /dj=%.3f, /shuffle=%.3f", dj_val, shuffle_val)
+        self._client.send_message("/dj", float(dj_val))
+        self._client.send_message("/shuffle", float(shuffle_val))
