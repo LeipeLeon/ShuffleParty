@@ -9,6 +9,7 @@ import time
 import pygame
 
 from shuffle_party.app import ShuffleParty, State
+from shuffle_party import config
 from shuffle_party.control_panel import ControlPanel
 
 # Pygame custom events
@@ -18,7 +19,7 @@ SHUFFLE_TRACK_END = pygame.USEREVENT + 2
 # Display constants
 BG_COLOR = (0, 0, 0)
 TIMER_COLOR = (255, 255, 255)
-CROSSFADE_DURATION = 3.0  # seconds, matches audio fade
+CROSSFADE_DURATION = config.CROSSFADE_DURATION_SECONDS
 
 
 def run() -> None:

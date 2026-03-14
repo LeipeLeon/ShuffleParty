@@ -9,6 +9,7 @@ import os
 # DJ set timing
 SET_DURATION_SECONDS = int(os.environ.get("SET_DURATION_SECONDS", 15 * 60))
 FADE_DURATION_SECONDS = float(os.environ.get("FADE_DURATION_SECONDS", 3.0))
+CROSSFADE_DURATION_SECONDS = float(os.environ.get("CROSSFADE_DURATION_SECONDS", 3.0))
 
 # Behringer XR12 mixer (OSC over WiFi/Ethernet)
 XR12_HOST = os.environ.get("XR12_HOST", "192.168.1.100")
