@@ -256,9 +256,8 @@ class ControlPanel:
             if self._waveform_rect.collidepoint(x, y) and self._duration_ms > 0:
                 t = (x - self._waveform_rect.x) / self._waveform_rect.width
                 seek_ms = int(t * self._duration_ms)
-                if pygame.mixer.music.get_busy():
+                if pygame.mixer.music.get_busy() or self._paused:
                     pygame.mixer.music.set_pos(seek_ms / 1000.0)
-                    # get_pos() resets to 0 after set_pos(), so track the offset
                     self._seek_offset_ms = seek_ms
                 return
 
