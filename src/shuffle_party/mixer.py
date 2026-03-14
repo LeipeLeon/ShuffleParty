@@ -9,10 +9,10 @@ import time
 class Mixer:
     """Controls DJ channel fader on the Behringer XR12 via OSC."""
 
-    def __init__(self, host: str, port: int, channel: int, fade_duration: float) -> None:
+    def __init__(self, host: str, port: int, channels: list[int], fade_duration: float) -> None:
         self.host = host
         self.port = port
-        self.channel = channel
+        self.channels = channels
         self.fade_duration = fade_duration
         self._client = None
         self._connect()
@@ -42,7 +42,7 @@ class Mixer:
         step_time = self.fade_duration / steps
         for i in range(steps + 1):
             value = start + (end - start) * (i / steps)
-            addr = f"/ch/{self.channel:02d}/mix/fader"
-            self._client.send(addr, value)
+            for ch in self.channels:
+                self._client.send(f"/ch/{ch:02d}/mix/fader", value)
             if i < steps:
                 time.sleep(step_time)
