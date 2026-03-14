@@ -40,13 +40,12 @@ class ShuffleParty:
         self.pending_track: str | None = None
 
     def start_dj_set(self) -> None:
-        """Transition from IDLE to DJ_SET."""
+        """Transition from IDLE to DJ_SET. Timer starts after crossfade completes."""
         if self.state != State.IDLE:
             return
         self.state = State.DJ_SET
         self.mixer.fade_in()
         self.lighting.activate_dj_set()
-        self.display.start_timer()
 
     def on_timer_expired(self) -> None:
         """Called when the DJ set countdown reaches 00:00."""
