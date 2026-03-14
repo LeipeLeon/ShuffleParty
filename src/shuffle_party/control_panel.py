@@ -307,10 +307,10 @@ class ControlPanel:
                         if self.party.state == State.DJ_SET and not self.crossfading:
                             self._skip_track = True
                     elif action == "crossfade":
-                        if self.party.state == State.DJ_SET:
-                            self._fade_out_now = True
-                        elif self.party.state == State.IDLE:
+                        if self.party.state == State.IDLE:
                             self._start_dj = True
+                        else:
+                            self._fade_out_now = True
                     return
 
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
