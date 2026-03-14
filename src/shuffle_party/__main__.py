@@ -70,6 +70,13 @@ def run() -> None:
 
     clock = pygame.time.Clock()
 
+    # Set window icon for task switcher
+    try:
+        icon = pygame.image.load("icon.png")
+        pygame.display.set_icon(icon)
+    except Exception:
+        pass
+
     # Load shuffle logo if available
     try:
         logo_original = pygame.image.load("de-shuffle.png")
