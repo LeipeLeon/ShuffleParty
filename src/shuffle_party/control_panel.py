@@ -83,6 +83,8 @@ class ControlPanel:
         self._dur_slider_rect = pygame.Rect(0, 0, 0, 0)
         self._vol_slider_rect = pygame.Rect(0, 0, 0, 0)
         self._waveform_rect = pygame.Rect(0, 0, 0, 0)
+        self._pause_btn_rect = pygame.Rect(0, 0, 0, 0)
+        self._paused = False
 
     def _make_placeholder(self) -> pygame.Surface:
         """Create an 80x80 placeholder surface with a music note icon."""
@@ -96,9 +98,11 @@ class ControlPanel:
         return surf
 
     def _playback_pos_ms(self) -> int:
-        """Current playback position in ms, accounting for seeks. Returns -1 if not playing."""
-        if not pygame.mixer.music.get_busy():
-            return 0 if self._track_name else -1
+        """Current playback position in ms, accounting for seeks. Returns -1 if not loaded."""
+        if not self._track_name:
+            return -1
+        if not pygame.mixer.music.get_busy() and not self._paused:
+            return 0
         return pygame.mixer.music.get_pos() + self._seek_offset_ms
 
     # -- Public interface (same as before) --
@@ -128,6 +132,7 @@ class ControlPanel:
         """Load track metadata, cover art, and waveform."""
         self._fadeout_cue_triggered = False
         self._seek_offset_ms = 0
+        self._paused = False
         self._waveform = []
         self._cover_art = None
         self._fadeout_cue_ms = -1
@@ -238,6 +243,14 @@ class ControlPanel:
             if self._vol_slider_rect.collidepoint(x, y):
                 self._dragging = "volume"
                 self._update_volume_slider(y)
+                return
+            if self._pause_btn_rect.collidepoint(x, y):
+                if self._paused:
+                    pygame.mixer.music.unpause()
+                    self._paused = False
+                else:
+                    pygame.mixer.music.pause()
+                    self._paused = True
                 return
             if self._waveform_rect.collidepoint(x, y) and self._duration_ms > 0:
                 t = (x - self._waveform_rect.x) / self._waveform_rect.width
@@ -355,6 +368,22 @@ class ControlPanel:
         if time_label:
             t_text = self._font_small.render(time_label, True, TEXT_DIM)
             surf.blit(t_text, (100, y + 22))
+
+        # Pause/play button (next to track info)
+        pause_y = y + 42
+        self._pause_btn_rect = pygame.Rect(100, pause_y, 24, 24)
+        if self._track_name:
+            pb = self._pause_btn_rect
+            pygame.draw.rect(surf, BTN_COLOR, pb, border_radius=3)
+            if self._paused:
+                # Play triangle
+                pygame.draw.polygon(surf, TEXT, [
+                    (pb.x + 8, pb.y + 5), (pb.x + 8, pb.y + 19), (pb.x + 19, pb.y + 12),
+                ])
+            else:
+                # Pause bars
+                pygame.draw.rect(surf, TEXT, (pb.x + 7, pb.y + 5, 4, 14))
+                pygame.draw.rect(surf, TEXT, (pb.x + 13, pb.y + 5, 4, 14))
 
         y += 88
 
