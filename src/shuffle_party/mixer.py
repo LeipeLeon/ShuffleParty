@@ -39,8 +39,8 @@ class Mixer:
 
             self._client = xair_api.connect(self.host, self.port)
         except Exception as e:
-            print(f"Warning: XR12 unreachable at {self.host}:{self.port} — {e}")
-            print("Continuing without mixer control.")
+            logger.warning(f"XR12 unreachable at {self.host}:{self.port} — {e!r}")
+            logger.warning("Continuing without mixer control.")
 
     def fade_out(self) -> None:
         """Start crossfade: DJ channels down, shuffle channels up."""

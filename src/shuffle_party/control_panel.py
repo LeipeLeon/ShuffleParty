@@ -4,8 +4,13 @@ Runs in a separate process to avoid SDL/Tk conflicts on macOS.
 Communicates with the main pygame process via multiprocessing shared state.
 """
 
+import logging
 import multiprocessing as mp
 import os
+import struct
+import subprocess
+
+logger = logging.getLogger(__name__)
 
 # Number of bars in the waveform display
 WAVEFORM_BINS = 200
@@ -322,10 +327,11 @@ class ControlPanel:
             self.shared.track_name.value = name.encode("utf-8")[:255]
             self.shared.waveform_ready.value = 0
             try:
-                from mutagen.mp3 import MP3
+                from mutagen.mp3 import MP3  # lazy import: optional dependency
                 audio = MP3(track_path)
                 self.shared.mp3_duration_ms.value = int(audio.info.length * 1000)
-            except Exception:
+            except Exception as e:
+                logger.warning(f"Could not read MP3 duration for {track_path} — {e!r}")
                 self.shared.mp3_duration_ms.value = 0
             self._generate_waveform(track_path)
         else:
@@ -336,10 +342,6 @@ class ControlPanel:
     def _generate_waveform(self, track_path: str) -> None:
         """Generate waveform peak data from an MP3 file."""
         try:
-            import subprocess
-            import struct
-
-            # Decode MP3 to raw 16-bit mono PCM using ffmpeg
             result = subprocess.run(
                 [
                     "ffmpeg", "-i", track_path,
@@ -368,5 +370,5 @@ class ControlPanel:
                     self.shared.waveform[i] = min(1.0, peak)
 
             self.shared.waveform_ready.value = 1
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Could not generate waveform for {track_path} — {e!r}")

@@ -26,8 +26,8 @@ class Lighting:
         try:
             self._client = SimpleUDPClient(self.host, self.port)
         except Exception as e:
-            print(f"Warning: QLC+ unreachable at {self.host}:{self.port} — {e}")
-            print("Continuing without lighting control.")
+            logger.warning(f"QLC+ unreachable at {self.host}:{self.port} — {e!r}")
+            logger.warning("Continuing without lighting control.")
 
     def activate_dj_set(self) -> None:
         """Start crossfade to DJ Set lighting (FX on, pin spots off)."""

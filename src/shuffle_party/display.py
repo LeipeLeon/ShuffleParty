@@ -24,10 +24,6 @@ class Display:
         self.set_duration = new_duration
         self.remaining_seconds = max(0, new_duration - elapsed)
 
-    def show_shuffle_logo(self) -> None:
-        """Switch the display to show the shuffle logo."""
-        pass  # pygame rendering handled in main loop
-
     def format_time(self) -> str:
         """Return remaining time as MM:SS string."""
         minutes = self.remaining_seconds // 60

@@ -1,7 +1,6 @@
 """Tests for the DJ rotation state machine."""
 
-import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from shuffle_party.app import ShuffleParty, State
 

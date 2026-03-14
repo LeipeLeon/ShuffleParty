@@ -32,26 +32,26 @@ CROSSFADE_DURATION = config.CROSSFADE_DURATION_SECONDS
 def preload_track(party, control) -> None:
     """Pick the next track, load it into pygame, and show it on the control panel."""
     track = party.track_picker.pick()
-    party._pending_track = track
+    party.pending_track = track
     if track:
         control.set_track_name(track)
         try:
             pygame.mixer.music.load(track)
             pygame.mixer.music.set_volume(0.0)
         except Exception as e:
-            print(f"Warning: Could not pre-load {track} — {e}")
-            party._pending_track = None
+            logging.warning(f"Could not pre-load {track} — {e!r}")
+            party.pending_track = None
 
 
 def start_shuffle(party, control) -> None:
     """Begin the shuffle transition, playing the pre-loaded track."""
     party.on_timer_expired()
-    if party._pending_track:
+    if party.pending_track:
         try:
             pygame.mixer.music.play()
         except Exception as e:
-            print(f"Warning: Could not play {party._pending_track} — {e}")
-    party._pending_track = None
+            logging.warning(f"Could not play {party.pending_track} — {e!r}")
+    party.pending_track = None
 
 
 def run() -> None:
@@ -70,7 +70,6 @@ def run() -> None:
         logo_original = None
 
     party = ShuffleParty()
-    party._pending_track = None
 
     # Launch control panel in a separate process
     control = ControlPanel(party)

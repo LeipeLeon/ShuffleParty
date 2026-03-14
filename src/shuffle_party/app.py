@@ -36,6 +36,7 @@ class ShuffleParty:
         )
         self.display = Display(set_duration=config.SET_DURATION_SECONDS)
         self.track_picker = TrackPicker(config.TRACKS_DIR)
+        self.pending_track: str | None = None
 
     def on_timer_expired(self) -> None:
         """Called when the DJ set countdown reaches 00:00."""
@@ -43,7 +44,6 @@ class ShuffleParty:
             return
         self.state = State.SHUFFLE
         self.mixer.fade_out()
-        self.display.show_shuffle_logo()
         self.lighting.activate_shuffle()
 
     def on_shuffle_track_ended(self) -> None:
