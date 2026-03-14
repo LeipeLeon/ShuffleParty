@@ -16,6 +16,7 @@ class SharedState:
         self.state = mp.Value("i", 0)  # 0 = DJ_SET, 1 = SHUFFLE
         self.remaining_seconds = mp.Value("i", set_duration)
         self.mp3_pos_ms = mp.Value("i", -1)  # -1 = not playing
+        self.mp3_duration_ms = mp.Value("i", 0)  # total track length
         self.track_name = mp.Array("c", 256)  # current track filename
 
         # Written by control panel (read by main process)
@@ -158,22 +159,26 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
 
         # MP3 progress
         pos = shared.mp3_pos_ms.value
-        if pos >= 0:
+        duration = shared.mp3_duration_ms.value
+        if pos >= 0 and duration > 0:
             pos_s = pos / 1000
-            m = int(pos_s) // 60
-            s = int(pos_s) % 60
-            mp3_time_var.set(f"{m:02d}:{s:02d}")
+            dur_s = duration / 1000
+            rem_s = max(0, dur_s - pos_s)
+
+            rem_m = int(rem_s) // 60
+            rem_sec = int(rem_s) % 60
+            dur_m = int(dur_s) // 60
+            dur_sec = int(dur_s) % 60
+            mp3_time_var.set(f"-{rem_m:02d}:{rem_sec:02d} / {dur_m:02d}:{dur_sec:02d}")
 
             name = shared.track_name.value.decode("utf-8", errors="ignore").rstrip("\x00")
             if name:
                 track_name_var.set(name)
 
-            mp3_progress.configure(mode="indeterminate")
-            mp3_progress.step(2)
+            pct = min(100, (pos / duration) * 100)
+            mp3_progress.configure(mode="determinate", value=pct)
         else:
-            if mp3_progress.cget("mode") == "indeterminate":
-                mp3_progress.stop()
-                mp3_progress.configure(mode="determinate", value=0)
+            mp3_progress.configure(mode="determinate", value=0)
             track_name_var.set("No track playing")
             mp3_time_var.set("")
 
@@ -240,6 +245,16 @@ class ControlPanel:
             self.party.mixer.set_master_volume(self.shared.master_volume.value)
 
     def set_track_name(self, track_path: str) -> None:
-        """Set the current track name for display."""
-        name = os.path.basename(track_path) if track_path else ""
-        self.shared.track_name.value = name.encode("utf-8")[:255]
+        """Set the current track name and read its duration."""
+        if track_path:
+            name = os.path.basename(track_path)
+            self.shared.track_name.value = name.encode("utf-8")[:255]
+            try:
+                from mutagen.mp3 import MP3
+                audio = MP3(track_path)
+                self.shared.mp3_duration_ms.value = int(audio.info.length * 1000)
+            except Exception:
+                self.shared.mp3_duration_ms.value = 0
+        else:
+            self.shared.track_name.value = b"\x00" * 255
+            self.shared.mp3_duration_ms.value = 0

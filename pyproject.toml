@@ -7,6 +7,7 @@ dependencies = [
     "pygame-ce",
     "python-osc",
     "xair-api",
+    "mutagen",
 ]
 
 [project.optional-dependencies]
