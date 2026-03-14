@@ -1,222 +1,245 @@
 """Tkinter control panel for Shuffle Partey.
 
-Runs in a separate thread alongside the pygame main loop. Provides
-controls for set duration, master volume, and displays MP3 progress
-and channel levels.
+Runs in a separate process to avoid SDL/Tk conflicts on macOS.
+Communicates with the main pygame process via multiprocessing shared state.
 """
 
-import tkinter as tk
-from tkinter import ttk
-import threading
+import multiprocessing as mp
+import os
+
+
+class SharedState:
+    """Shared state between the pygame process and the control panel process."""
+
+    def __init__(self, set_duration: int, dj_channels: list[int], shuffle_channels: list[int]) -> None:
+        # Read by control panel (updated by main process)
+        self.state = mp.Value("i", 0)  # 0 = DJ_SET, 1 = SHUFFLE
+        self.remaining_seconds = mp.Value("i", set_duration)
+        self.mp3_pos_ms = mp.Value("i", -1)  # -1 = not playing
+        self.track_name = mp.Array("c", 256)  # current track filename
+
+        # Written by control panel (read by main process)
+        self.new_duration = mp.Value("i", set_duration)
+        self.duration_changed = mp.Value("i", 0)  # flag
+        self.master_volume = mp.Value("d", 1.0)
+        self.volume_changed = mp.Value("i", 0)  # flag
+
+        # Channel info for display
+        self.dj_channels = dj_channels
+        self.shuffle_channels = shuffle_channels
+
+
+def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: list[int]) -> None:
+    """Entry point for the control panel process."""
+    import tkinter as tk
+    from tkinter import ttk
+
+    root = tk.Tk()
+    root.title("Shuffle Partey — Controls")
+    root.geometry("480x520")
+    root.resizable(False, False)
+
+    style = ttk.Style()
+    style.configure("Big.TLabel", font=("Helvetica", 24, "bold"))
+    style.configure("Status.TLabel", font=("Helvetica", 11))
+
+    pad = {"padx": 10, "pady": 4}
+
+    # -- State & remaining time --
+    frame_status = ttk.LabelFrame(root, text="Status", padding=10)
+    frame_status.pack(fill="x", **pad)
+
+    state_var = tk.StringVar(value="DJ SET")
+    ttk.Label(frame_status, textvariable=state_var, style="Status.TLabel").pack(side="left")
+
+    remaining_var = tk.StringVar(value="--:--")
+    ttk.Label(frame_status, textvariable=remaining_var, style="Big.TLabel").pack(side="right")
+
+    # -- Set duration control --
+    frame_duration = ttk.LabelFrame(root, text="Set Duration", padding=10)
+    frame_duration.pack(fill="x", **pad)
+
+    duration_var = tk.IntVar(value=shared.new_duration.value)
+
+    def format_duration(seconds):
+        m = seconds // 60
+        s = seconds % 60
+        return f"{m} min {s} sec" if s else f"{m} min"
+
+    duration_label = tk.StringVar(value=format_duration(duration_var.get()))
+
+    slider_frame = ttk.Frame(frame_duration)
+    slider_frame.pack(fill="x")
+    ttk.Label(slider_frame, text="5 min").pack(side="left")
+
+    def on_duration_changed(value):
+        raw = int(float(value))
+        rounded = round(raw / 30) * 30
+        duration_var.set(rounded)
+        duration_label.set(format_duration(rounded))
+        shared.new_duration.value = rounded
+        shared.duration_changed.value = 1
+
+    duration_slider = ttk.Scale(
+        slider_frame, from_=5 * 60, to=60 * 60,
+        orient="horizontal", variable=duration_var,
+        command=on_duration_changed,
+    )
+    duration_slider.pack(side="left", fill="x", expand=True, padx=5)
+    ttk.Label(slider_frame, text="60 min").pack(side="left")
+    ttk.Label(frame_duration, textvariable=duration_label, style="Status.TLabel").pack()
+
+    # -- MP3 progress --
+    frame_mp3 = ttk.LabelFrame(root, text="Shuffle Track", padding=10)
+    frame_mp3.pack(fill="x", **pad)
+
+    track_name_var = tk.StringVar(value="No track playing")
+    ttk.Label(frame_mp3, textvariable=track_name_var, style="Status.TLabel").pack(anchor="w")
+
+    mp3_progress = ttk.Progressbar(frame_mp3, mode="determinate", maximum=100)
+    mp3_progress.pack(fill="x", pady=(4, 0))
+
+    mp3_time_var = tk.StringVar(value="")
+    ttk.Label(frame_mp3, textvariable=mp3_time_var, style="Status.TLabel").pack(anchor="e")
+
+    # -- Master volume --
+    frame_master = ttk.LabelFrame(root, text="Master Volume", padding=10)
+    frame_master.pack(fill="x", **pad)
+
+    master_vol_var = tk.DoubleVar(value=1.0)
+    master_vol_label = tk.StringVar(value="100%")
+
+    def on_master_volume_changed(value):
+        vol = float(value)
+        master_vol_label.set(f"{int(vol * 100)}%")
+        shared.master_volume.value = vol
+        shared.volume_changed.value = 1
+
+    vol_frame = ttk.Frame(frame_master)
+    vol_frame.pack(fill="x")
+    ttk.Label(vol_frame, text="0%").pack(side="left")
+    ttk.Scale(
+        vol_frame, from_=0.0, to=1.0,
+        orient="horizontal", variable=master_vol_var,
+        command=on_master_volume_changed,
+    ).pack(side="left", fill="x", expand=True, padx=5)
+    ttk.Label(vol_frame, text="100%").pack(side="left")
+    ttk.Label(frame_master, textvariable=master_vol_label, style="Status.TLabel").pack()
+
+    # -- Channel levels --
+    frame_levels = ttk.LabelFrame(root, text="Channel Levels", padding=10)
+    frame_levels.pack(fill="x", **pad)
+
+    level_bars = {}
+    channels = [
+        ("DJ L", dj_channels[0]),
+        ("DJ R", dj_channels[1]),
+        ("Shuffle L", shuffle_channels[0]),
+        ("Shuffle R", shuffle_channels[1]),
+    ]
+    for label, ch in channels:
+        row = ttk.Frame(frame_levels)
+        row.pack(fill="x", pady=1)
+        ttk.Label(row, text=f"{label} (ch {ch})", width=16).pack(side="left")
+        bar = ttk.Progressbar(row, mode="determinate", maximum=100, length=200)
+        bar.pack(side="left", fill="x", expand=True, padx=(5, 0))
+        level_bars[ch] = bar
+
+    def poll():
+        # State
+        state_name = "SHUFFLE" if shared.state.value == 1 else "DJ SET"
+        state_var.set(state_name)
+
+        # Remaining time
+        rem = shared.remaining_seconds.value
+        minutes = rem // 60
+        seconds = rem % 60
+        remaining_var.set(f"{minutes:02d}:{seconds:02d}")
+
+        # MP3 progress
+        pos = shared.mp3_pos_ms.value
+        if pos >= 0:
+            pos_s = pos / 1000
+            m = int(pos_s) // 60
+            s = int(pos_s) % 60
+            mp3_time_var.set(f"{m:02d}:{s:02d}")
+
+            name = shared.track_name.value.decode("utf-8", errors="ignore").rstrip("\x00")
+            if name:
+                track_name_var.set(name)
+
+            mp3_progress.configure(mode="indeterminate")
+            mp3_progress.step(2)
+        else:
+            if mp3_progress.cget("mode") == "indeterminate":
+                mp3_progress.stop()
+                mp3_progress.configure(mode="determinate", value=0)
+            track_name_var.set("No track playing")
+            mp3_time_var.set("")
+
+        # Channel levels
+        is_dj = shared.state.value == 0
+        dj_level = 100 if is_dj else 0
+        shuffle_level = 0 if is_dj else 100
+        for ch in dj_channels:
+            if ch in level_bars:
+                level_bars[ch]["value"] = dj_level
+        for ch in shuffle_channels:
+            if ch in level_bars:
+                level_bars[ch]["value"] = shuffle_level
+
+        root.after(100, poll)
+
+    poll()
+    root.mainloop()
 
 
 class ControlPanel:
-    """Operator control window using tkinter."""
+    """Launches the control panel in a separate process."""
 
     def __init__(self, party) -> None:
         self.party = party
-        self._root = None
-        self._thread = threading.Thread(target=self._run, daemon=True)
-        self._thread.start()
-
-    def _run(self) -> None:
-        self._root = tk.Tk()
-        self._root.title("Shuffle Partey — Controls")
-        self._root.geometry("480x520")
-        self._root.resizable(False, False)
-
-        style = ttk.Style()
-        style.configure("Header.TLabel", font=("Helvetica", 12, "bold"))
-        style.configure("Big.TLabel", font=("Helvetica", 24, "bold"))
-        style.configure("Status.TLabel", font=("Helvetica", 11))
-
-        pad = {"padx": 10, "pady": 4}
-
-        # -- State & remaining time --
-        frame_status = ttk.LabelFrame(self._root, text="Status", padding=10)
-        frame_status.pack(fill="x", **pad)
-
-        self._state_var = tk.StringVar(value="DJ SET")
-        ttk.Label(frame_status, textvariable=self._state_var, style="Status.TLabel").pack(side="left")
-
-        self._remaining_var = tk.StringVar(value="--:--")
-        ttk.Label(frame_status, textvariable=self._remaining_var, style="Big.TLabel").pack(side="right")
-
-        # -- Set duration control --
-        frame_duration = ttk.LabelFrame(self._root, text="Set Duration", padding=10)
-        frame_duration.pack(fill="x", **pad)
-
-        self._duration_var = tk.IntVar(value=self.party.display.set_duration)
-        self._duration_label = tk.StringVar(value=self._format_duration(self._duration_var.get()))
-
-        slider_frame = ttk.Frame(frame_duration)
-        slider_frame.pack(fill="x")
-
-        ttk.Label(slider_frame, text="5 min").pack(side="left")
-        self._duration_slider = ttk.Scale(
-            slider_frame,
-            from_=5 * 60, to=60 * 60,
-            orient="horizontal",
-            variable=self._duration_var,
-            command=self._on_duration_changed,
+        self.shared = SharedState(
+            set_duration=party.display.set_duration,
+            dj_channels=party.mixer.dj_channels,
+            shuffle_channels=party.mixer.shuffle_channels,
         )
-        self._duration_slider.pack(side="left", fill="x", expand=True, padx=5)
-        ttk.Label(slider_frame, text="60 min").pack(side="left")
-
-        ttk.Label(frame_duration, textvariable=self._duration_label, style="Status.TLabel").pack()
-
-        # -- MP3 progress --
-        frame_mp3 = ttk.LabelFrame(self._root, text="Shuffle Track", padding=10)
-        frame_mp3.pack(fill="x", **pad)
-
-        self._track_name_var = tk.StringVar(value="No track playing")
-        ttk.Label(frame_mp3, textvariable=self._track_name_var, style="Status.TLabel").pack(anchor="w")
-
-        self._mp3_progress = ttk.Progressbar(frame_mp3, mode="determinate", maximum=100)
-        self._mp3_progress.pack(fill="x", pady=(4, 0))
-
-        self._mp3_time_var = tk.StringVar(value="")
-        ttk.Label(frame_mp3, textvariable=self._mp3_time_var, style="Status.TLabel").pack(anchor="e")
-
-        # -- Master volume --
-        frame_master = ttk.LabelFrame(self._root, text="Master Volume", padding=10)
-        frame_master.pack(fill="x", **pad)
-
-        self._master_vol_var = tk.DoubleVar(value=1.0)
-
-        vol_frame = ttk.Frame(frame_master)
-        vol_frame.pack(fill="x")
-
-        ttk.Label(vol_frame, text="0%").pack(side="left")
-        self._master_slider = ttk.Scale(
-            vol_frame,
-            from_=0.0, to=1.0,
-            orient="horizontal",
-            variable=self._master_vol_var,
-            command=self._on_master_volume_changed,
+        self._process = mp.Process(
+            target=_run_panel,
+            args=(self.shared, party.mixer.dj_channels, party.mixer.shuffle_channels),
+            daemon=True,
         )
-        self._master_slider.pack(side="left", fill="x", expand=True, padx=5)
-        ttk.Label(vol_frame, text="100%").pack(side="left")
+        self._process.start()
 
-        self._master_vol_label = tk.StringVar(value="100%")
-        ttk.Label(frame_master, textvariable=self._master_vol_label, style="Status.TLabel").pack()
+    def update(self) -> None:
+        """Called from the main loop to sync state in both directions."""
+        from shuffle_party.app import State
 
-        # -- Channel levels --
-        frame_levels = ttk.LabelFrame(self._root, text="Channel Levels", padding=10)
-        frame_levels.pack(fill="x", **pad)
+        # Push state to control panel
+        self.shared.state.value = 1 if self.party.state == State.SHUFFLE else 0
+        self.shared.remaining_seconds.value = self.party.display.remaining_seconds
 
-        self._level_bars = {}
-        channels = [
-            ("DJ L", self.party.mixer.dj_channels[0]),
-            ("DJ R", self.party.mixer.dj_channels[1]),
-            ("Shuffle L", self.party.mixer.shuffle_channels[0]),
-            ("Shuffle R", self.party.mixer.shuffle_channels[1]),
-        ]
-        for label, ch in channels:
-            row = ttk.Frame(frame_levels)
-            row.pack(fill="x", pady=1)
-            ttk.Label(row, text=f"{label} (ch {ch})", width=16).pack(side="left")
-            bar = ttk.Progressbar(row, mode="determinate", maximum=100, length=200)
-            bar.pack(side="left", fill="x", expand=True, padx=(5, 0))
-            self._level_bars[ch] = bar
-
-        # Start polling
-        self._poll()
-        self._root.mainloop()
-
-    def _poll(self) -> None:
-        """Update display values from the party state, called every 100ms."""
-        if self._root is None:
-            return
-
-        try:
-            # State
-            from shuffle_party.app import State
-            state_name = "SHUFFLE" if self.party.state == State.SHUFFLE else "DJ SET"
-            self._state_var.set(state_name)
-
-            # Remaining time
-            self._remaining_var.set(self.party.display.format_time())
-
-            # MP3 progress
-            self._update_mp3_progress()
-
-            # Channel levels (fader positions, not audio meters)
-            self._update_channel_levels()
-
-        except Exception:
-            pass
-
-        self._root.after(100, self._poll)
-
-    def _update_mp3_progress(self) -> None:
-        """Update MP3 progress bar from pygame mixer state."""
+        # Push MP3 position
         try:
             import pygame
             if pygame.mixer.music.get_busy():
-                pos_ms = pygame.mixer.music.get_pos()
-                pos_s = max(0, pos_ms / 1000)
-                minutes = int(pos_s) // 60
-                seconds = int(pos_s) % 60
-                self._mp3_time_var.set(f"{minutes:02d}:{seconds:02d}")
-
-                # Show track name if we have one
-                if hasattr(self.party, '_current_track') and self.party._current_track:
-                    import os
-                    name = os.path.basename(self.party._current_track)
-                    self._track_name_var.set(name)
-
-                # Progress — we don't know total length from pygame.mixer.music,
-                # so show an indeterminate time counter
-                self._mp3_progress.configure(mode="indeterminate")
-                self._mp3_progress.step(2)
+                self.shared.mp3_pos_ms.value = pygame.mixer.music.get_pos()
             else:
-                if self._mp3_progress.cget("mode") == "indeterminate":
-                    self._mp3_progress.stop()
-                    self._mp3_progress.configure(mode="determinate", value=0)
-                self._track_name_var.set("No track playing")
-                self._mp3_time_var.set("")
+                self.shared.mp3_pos_ms.value = -1
         except Exception:
-            pass
+            self.shared.mp3_pos_ms.value = -1
 
-    def _update_channel_levels(self) -> None:
-        """Show current fader positions as level indicators."""
-        # We read the last-sent fader values. Since we control the faders,
-        # we know what they should be based on state.
-        from shuffle_party.app import State
-        if self.party.state == State.DJ_SET:
-            dj_level = 100
-            shuffle_level = 0
-        else:
-            dj_level = 0
-            shuffle_level = 100
+        # Pull duration changes from control panel
+        if self.shared.duration_changed.value:
+            self.shared.duration_changed.value = 0
+            self.party.display.change_duration(self.shared.new_duration.value)
 
-        for ch in self.party.mixer.dj_channels:
-            if ch in self._level_bars:
-                self._level_bars[ch]["value"] = dj_level
-        for ch in self.party.mixer.shuffle_channels:
-            if ch in self._level_bars:
-                self._level_bars[ch]["value"] = shuffle_level
+        # Pull master volume changes from control panel
+        if self.shared.volume_changed.value:
+            self.shared.volume_changed.value = 0
+            self.party.mixer.set_master_volume(self.shared.master_volume.value)
 
-    def _on_duration_changed(self, value) -> None:
-        """Slider moved — update the set duration."""
-        # Round to nearest 30 seconds for usability
-        raw = int(float(value))
-        rounded = round(raw / 30) * 30
-        self._duration_var.set(rounded)
-        self._duration_label.set(self._format_duration(rounded))
-        self.party.display.change_duration(rounded)
-
-    def _on_master_volume_changed(self, value) -> None:
-        """Master volume slider moved."""
-        vol = float(value)
-        self._master_vol_label.set(f"{int(vol * 100)}%")
-        self.party.mixer.set_master_volume(vol)
-
-    @staticmethod
-    def _format_duration(seconds: int) -> str:
-        m = seconds // 60
-        s = seconds % 60
-        if s:
-            return f"{m} min {s} sec"
-        return f"{m} min"
+    def set_track_name(self, track_path: str) -> None:
+        """Set the current track name for display."""
+        name = os.path.basename(track_path) if track_path else ""
+        self.shared.track_name.value = name.encode("utf-8")[:255]

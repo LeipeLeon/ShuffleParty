@@ -35,9 +35,8 @@ def run() -> None:
         logo_original = None
 
     party = ShuffleParty()
-    party._current_track = None
 
-    # Launch control panel in a separate thread
+    # Launch control panel in a separate process
     control = ControlPanel(party)
 
     # Set up the music end event so we detect when shuffle tracks finish
@@ -66,7 +65,7 @@ def run() -> None:
                     if expired:
                         track = party.on_timer_expired()
                         if track:
-                            party._current_track = track
+                            control.set_track_name(track)
                             try:
                                 pygame.mixer.music.load(track)
                                 pygame.mixer.music.play()
@@ -74,8 +73,11 @@ def run() -> None:
                                 print(f"Warning: Could not play {track} — {e}")
 
             elif event.type == SHUFFLE_TRACK_END:
-                party._current_track = None
+                control.set_track_name("")
                 party.on_shuffle_track_ended()
+
+        # Sync shared state with control panel
+        control.update()
 
         # Render
         screen.fill(BG_COLOR)
