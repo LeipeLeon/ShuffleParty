@@ -82,6 +82,30 @@ Or just use the startup script (handles venv + deps automatically):
 
 Put your shuffle transition MP3s in `./tracks/` before starting.
 
+### Project Structure
+
+```
+ShuffleParty/
+  ├── src/
+  │   └── shuffle_party/
+  │       ├── __init__.py
+  │       ├── __main__.py      (pygame event loop)
+  │       ├── app.py            (state machine + config)
+  │       ├── mixer.py          (XR12 OSC)
+  │       ├── lighting.py       (QLC+ OSC)
+  │       ├── display.py        (countdown timer)
+  │       └── track_picker.py   (random MP3 selection)
+  ├── tests/
+  │   ├── test_state_machine.py
+  │   ├── test_mixer.py
+  │   ├── test_lighting.py
+  │   ├── test_display.py
+  │   └── test_track_picker.py
+  ├── pyproject.toml
+  ├── start.sh
+  └── README.md
+```
+
 ### Alternatives
 
 | | Python | Node.js + Chromium | openFrameworks | TouchDesigner | DragonRuby |
