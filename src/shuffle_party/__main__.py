@@ -92,8 +92,11 @@ def run() -> None:
                 control.set_track_name("")
                 party.on_shuffle_track_ended()
 
-        # Advance mixer crossfade
+        # Advance mixer crossfade; stop music when fade-in (back to DJ) completes
+        was_fading = party.mixer.is_fading
         party.mixer.tick()
+        if was_fading and not party.mixer.is_fading and party.state == State.DJ_SET:
+            pygame.mixer.music.stop()
 
         # Sync shared state with control panel
         control.update()
