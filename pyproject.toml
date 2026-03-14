@@ -8,7 +8,6 @@ dependencies = [
     "python-osc",
     "xair-api",
     "mutagen",
-    "pillow>=12.1.1",
 ]
 
 [dependency-groups]
@@ -16,6 +15,7 @@ dev = [
     "pytest",
     "ruff>=0.1.0",
     "mypy>=1.8.0",
+    "pillow>=12.1.1",
 ]
 
 [build-system]

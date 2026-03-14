@@ -1,537 +1,185 @@
-"""Tkinter control panel for Shuffle Partey.
+"""Pygame control panel for Shuffle Partey.
 
-Runs in a separate process to avoid SDL/Tk conflicts on macOS.
-Communicates with the main pygame process via multiprocessing shared state.
+Renders a second pygame window with buttons, sliders, waveform, cover art,
+and channel levels. Runs in the same process as the main display.
 """
 
+import io
 import logging
-import multiprocessing as mp
 import os
 import struct
 import subprocess
 
+import pygame
+
 logger = logging.getLogger(__name__)
 
-# Number of bars in the waveform display
+# Layout constants
+WIDTH = 480
+HEIGHT = 620
 WAVEFORM_BINS = 200
 
-
-class SharedState:
-    """Shared state between the pygame process and the control panel process."""
-
-    def __init__(
-        self, set_duration: int, dj_channels: list[int], shuffle_channels: list[int],
-    ) -> None:
-        # Read by control panel (updated by main process)
-        self.state = mp.Value("i", 2)  # 0 = DJ_SET, 1 = SHUFFLE, 2 = IDLE
-        self.remaining_seconds = mp.Value("i", set_duration)
-        self.mp3_pos_ms = mp.Value("i", -1)  # -1 = not playing
-        self.mp3_duration_ms = mp.Value("i", 0)  # total track length
-        self.track_name = mp.Array("c", 256)  # current track filename
-        self.track_display = mp.Array("c", 512)  # "Artist — Title" for display
-        self.cover_art = mp.Array("c", 200_000)  # JPEG/PNG cover art bytes
-        self.cover_art_size = mp.Value("i", 0)  # actual size of cover art data
-        self.fadeout_cue_ms = mp.Value("i", -1)  # -1 = no cue, play to end
-        self.waveform = mp.Array("f", WAVEFORM_BINS)  # normalized peak values 0.0–1.0
-        self.waveform_ready = mp.Value("i", 0)  # flag
-
-        # Written by control panel (read by main process)
-        self.new_duration = mp.Value("i", set_duration)
-        self.duration_changed = mp.Value("i", 0)  # flag
-        self.master_volume = mp.Value("d", 1.0)
-        self.volume_changed = mp.Value("i", 0)  # flag
-        self.fade_out_now = mp.Value("i", 0)  # flag
-        self.start_dj = mp.Value("i", 0)  # flag
-
-        # Fader levels (updated every frame from mixer)
-        self.dj_level = mp.Value("d", 1.0)
-        self.shuffle_level = mp.Value("d", 0.0)
-
-        # Channel info for display
-        self.dj_channels = dj_channels
-        self.shuffle_channels = shuffle_channels
-
-
-def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: list[int]) -> None:
-    """Entry point for the control panel process."""
-    import tkinter as tk
-    from tkinter import ttk
-
-    root = tk.Tk()
-    root.title("Shuffle Partey — Controls")
-    root.geometry("480x780")
-    root.resizable(False, False)
-
-    style = ttk.Style()
-    style.configure("Big.TLabel", font=("Helvetica", 24, "bold"))
-    style.configure("Status.TLabel", font=("Helvetica", 11))
-
-    pad = {"padx": 10, "pady": 4}
-
-    # -- State & remaining time --
-    frame_status = ttk.LabelFrame(root, text="Status", padding=10)
-    frame_status.pack(fill="x", **pad)
-
-    state_var = tk.StringVar(value="DJ SET")
-    ttk.Label(frame_status, textvariable=state_var, style="Status.TLabel").pack(side="left")
-
-    remaining_var = tk.StringVar(value="--:--")
-    ttk.Label(frame_status, textvariable=remaining_var, style="Big.TLabel").pack(side="right")
-
-    # -- Start DJ / Fade out button --
-    def on_start_dj():
-        shared.start_dj.value = 1
-
-    # Button frame holds either start or fade button
-    btn_frame = ttk.Frame(root)
-    btn_frame.pack(fill="x", **pad)
-
-    start_btn = ttk.Button(btn_frame, text="Start DJ Set", command=on_start_dj)
-    start_btn.pack(fill="x")
-
-    def on_fade_out_now():
-        shared.fade_out_now.value = 1
-
-    fade_btn_var = tk.StringVar(value="Fade Out Now")
-    fade_btn = ttk.Button(btn_frame, textvariable=fade_btn_var, command=on_fade_out_now)
-    # fade_btn starts hidden (IDLE state)
-
-    prev_idle = [True]
-
-    # -- Set duration control --
-    frame_duration = ttk.LabelFrame(root, text="Set Duration", padding=10)
-    frame_duration.pack(fill="x", **pad)
-
-    duration_var = tk.IntVar(value=shared.new_duration.value)
-
-    def format_duration(seconds):
-        m = seconds // 60
-        s = seconds % 60
-        return f"{m} min {s} sec" if s else f"{m} min"
-
-    duration_label = tk.StringVar(value=format_duration(duration_var.get()))
-
-    slider_frame = ttk.Frame(frame_duration)
-    slider_frame.pack(fill="x")
-    ttk.Label(slider_frame, text="30s").pack(side="left")
-
-    def on_duration_changed(value):
-        raw = int(float(value))
-        rounded = round(raw / 30) * 30
-        duration_var.set(rounded)
-        duration_label.set(format_duration(rounded))
-        shared.new_duration.value = rounded
-        shared.duration_changed.value = 1
-
-    duration_slider = ttk.Scale(
-        slider_frame, from_=30, to=20 * 60,
-        orient="horizontal", variable=duration_var,
-        command=on_duration_changed,
-    )
-    duration_slider.pack(side="left", fill="x", expand=True, padx=5)
-    ttk.Label(slider_frame, text="20 min").pack(side="left")
-    ttk.Label(frame_duration, textvariable=duration_label, style="Status.TLabel").pack()
-
-    # -- MP3 progress --
-    frame_mp3 = ttk.LabelFrame(root, text="Shuffle Track", padding=10)
-    frame_mp3.pack(fill="x", **pad)
-
-    # Cover art + track info side by side
-    track_top = ttk.Frame(frame_mp3)
-    track_top.pack(fill="x")
-
-    cover_size = 80
-    cover_label = tk.Label(track_top, width=cover_size, height=cover_size, bg="#2a2a3e")
-    cover_label.pack(side="left", padx=(0, 8))
-    cover_photo_ref = [None]  # keep reference to prevent GC
-
-    # Create a placeholder image for when no cover art is available
-    def _make_placeholder():
-        from PIL import Image, ImageDraw, ImageFont, ImageTk
-        img = Image.new("RGB", (cover_size, cover_size), "#2a2a3e")
-        draw = ImageDraw.Draw(img)
-        # Draw a music note icon (♪) centered
-        try:
-            font = ImageFont.truetype("/System/Library/Fonts/Apple Symbols.ttf", 40)
-        except Exception:
-            font = ImageFont.load_default()
-        draw.text(
-            (cover_size / 2, cover_size / 2), "\u266b",
-            fill="#555570", font=font, anchor="mm",
-        )
-        return ImageTk.PhotoImage(img)
-
-    try:
-        placeholder_photo = _make_placeholder()
-    except Exception:
-        placeholder_photo = None
-
-    track_info_frame = ttk.Frame(track_top)
-    track_info_frame.pack(side="left", fill="x", expand=True)
-
-    track_name_var = tk.StringVar(value="No track loaded")
-    ttk.Label(
-        track_info_frame, textvariable=track_name_var,
-        font=("Helvetica", 12, "bold"), wraplength=340,
-    ).pack(anchor="w")
-
-    mp3_time_var = tk.StringVar(value="")
-    ttk.Label(track_info_frame, textvariable=mp3_time_var, style="Status.TLabel").pack(anchor="w")
-
-    waveform_height = 60
-    waveform_canvas = tk.Canvas(
-        frame_mp3, height=waveform_height, bg="#1a1a2e",
-        highlightthickness=0,
-    )
-    waveform_canvas.pack(fill="x", pady=(4, 0))
-    waveform_drawn = [False]
-    cover_loaded_for = [b""]  # track which cover is currently shown
-
-    # -- Master volume --
-    frame_master = ttk.LabelFrame(root, text="Master Volume", padding=10)
-    frame_master.pack(fill="x", **pad)
-
-    master_vol_var = tk.DoubleVar(value=1.0)
-    master_vol_label = tk.StringVar(value="100%")
-
-    def on_master_volume_changed(value):
-        vol = float(value)
-        master_vol_label.set(f"{int(vol * 100)}%")
-        shared.master_volume.value = vol
-        shared.volume_changed.value = 1
-
-    vol_frame = ttk.Frame(frame_master)
-    vol_frame.pack(fill="x")
-    ttk.Label(vol_frame, text="0%").pack(side="left")
-    ttk.Scale(
-        vol_frame, from_=0.0, to=1.0,
-        orient="horizontal", variable=master_vol_var,
-        command=on_master_volume_changed,
-    ).pack(side="left", fill="x", expand=True, padx=5)
-    ttk.Label(vol_frame, text="100%").pack(side="left")
-    ttk.Label(frame_master, textvariable=master_vol_label, style="Status.TLabel").pack()
-
-    # -- Channel levels --
-    frame_levels = ttk.LabelFrame(root, text="Channel Levels", padding=10)
-    frame_levels.pack(fill="x", **pad)
-
-    level_bars = {}
-    channels = [
-        ("DJ L", dj_channels[0]),
-        ("DJ R", dj_channels[1]),
-        ("Shuffle L", shuffle_channels[0]),
-        ("Shuffle R", shuffle_channels[1]),
-    ]
-    for label, ch in channels:
-        row = ttk.Frame(frame_levels)
-        row.pack(fill="x", pady=1)
-        ttk.Label(row, text=f"{label} (ch {ch})", width=16).pack(side="left")
-        bar = ttk.Progressbar(row, mode="determinate", maximum=100, length=200)
-        bar.pack(side="left", fill="x", expand=True, padx=(5, 0))
-        level_bars[ch] = bar
-
-    def poll():
-        # State
-        state_val = shared.state.value
-        is_idle = state_val == 2
-        is_shuffle = state_val == 1
-        state_name = "IDLE" if is_idle else ("SHUFFLE" if is_shuffle else "DJ SET")
-        state_var.set(state_name)
-
-        # Toggle start/fade button only on state change
-        if is_idle != prev_idle[0]:
-            prev_idle[0] = is_idle
-            if is_idle:
-                fade_btn.pack_forget()
-                start_btn.pack(fill="x")
-            else:
-                start_btn.pack_forget()
-                fade_btn.pack(fill="x")
-        if not is_idle:
-            fade_btn_var.set("Fade Track Out Now" if is_shuffle else "End DJ Set Now")
-
-        # Remaining time
-        rem = shared.remaining_seconds.value
-        minutes = rem // 60
-        seconds = rem % 60
-        remaining_var.set(f"{minutes:02d}:{seconds:02d}")
-
-        # Track info, cover art, and waveform
-        raw_name = shared.track_name.value
-        name = raw_name.decode("utf-8", errors="ignore").rstrip("\x00")
-        display = shared.track_display.value.decode("utf-8", errors="ignore").rstrip("\x00")
-        duration = shared.mp3_duration_ms.value
-        pos = shared.mp3_pos_ms.value
-
-        if name:
-            track_name_var.set(display or name)
-
-            # Load cover art once per track
-            art_size = shared.cover_art_size.value
-            if raw_name != cover_loaded_for[0]:
-                cover_loaded_for[0] = raw_name
-                waveform_drawn[0] = False
-                if art_size > 0:
-                    try:
-                        import io
-
-                        from PIL import Image, ImageTk
-                        art_bytes = bytes(shared.cover_art[:art_size])
-                        img = Image.open(io.BytesIO(art_bytes))
-                        img = img.resize((cover_size, cover_size), Image.Resampling.LANCZOS)
-                        photo = ImageTk.PhotoImage(img)
-                        cover_label.configure(image=photo, width=cover_size, height=cover_size)
-                        cover_photo_ref[0] = photo
-                    except Exception:
-                        cover_label.configure(
-                            image=placeholder_photo or "", text="",
-                            width=cover_size, height=cover_size,
-                        )
-                        cover_photo_ref[0] = placeholder_photo
-                else:
-                    cover_label.configure(
-                            image=placeholder_photo or "", text="",
-                            width=cover_size, height=cover_size,
-                        )
-                    cover_photo_ref[0] = placeholder_photo
-
-            # Draw waveform bars once when a new track loads
-            if shared.waveform_ready.value and not waveform_drawn[0]:
-                waveform_canvas.delete("waveform")
-                canvas_w = waveform_canvas.winfo_width() or 460
-                bar_w = max(1, canvas_w / WAVEFORM_BINS)
-                mid = waveform_height / 2
-                peaks = list(shared.waveform[:])
-                for i, peak in enumerate(peaks):
-                    x = i * bar_w
-                    h = peak * mid * 0.9
-                    waveform_canvas.create_rectangle(
-                        x, mid - h, x + bar_w - 1, mid + h,
-                        fill="#4a9eff", outline="", tags="waveform",
-                    )
-                # Draw fadeout cue marker
-                fadeout_ms = shared.fadeout_cue_ms.value
-                if fadeout_ms >= 0 and duration > 0:
-                    cue_x = (fadeout_ms / duration) * canvas_w
-                    waveform_canvas.create_line(
-                        cue_x, 0, cue_x, waveform_height,
-                        fill="#ff8800", width=2, dash=(4, 2), tags="waveform",
-                    )
-                waveform_drawn[0] = True
-
-            # Playhead and time display (only while playing)
-            if pos >= 0 and duration > 0:
-                pos_s = pos / 1000
-                dur_s = duration / 1000
-                rem_s = max(0, dur_s - pos_s)
-
-                rem_m = int(rem_s) // 60
-                rem_sec = int(rem_s) % 60
-                dur_m = int(dur_s) // 60
-                dur_sec = int(dur_s) % 60
-                mp3_time_var.set(f"-{rem_m:02d}:{rem_sec:02d} / {dur_m:02d}:{dur_sec:02d}")
-
-                waveform_canvas.delete("playhead")
-                canvas_w = waveform_canvas.winfo_width() or 460
-                x = (pos / duration) * canvas_w
-                waveform_canvas.create_line(
-                    x, 0, x, waveform_height,
-                    fill="#ff4444", width=2, tags="playhead",
-                )
-            else:
-                waveform_canvas.delete("playhead")
-                if duration > 0:
-                    dur_m = duration // 60000
-                    dur_sec = (duration // 1000) % 60
-                    mp3_time_var.set(f"Ready — {dur_m:02d}:{dur_sec:02d}")
-                else:
-                    mp3_time_var.set("Ready")
-        else:
-            waveform_canvas.delete("waveform", "playhead")
-            waveform_drawn[0] = False
-            cover_loaded_for[0] = b""
-            cover_label.configure(
-                            image=placeholder_photo or "", text="",
-                            width=cover_size, height=cover_size,
-                        )
-            cover_photo_ref[0] = placeholder_photo
-            track_name_var.set("No track loaded")
-            mp3_time_var.set("")
-
-        # Channel levels
-        dj_pct = shared.dj_level.value * 100
-        shuffle_pct = shared.shuffle_level.value * 100
-        for ch in dj_channels:
-            if ch in level_bars:
-                level_bars[ch]["value"] = dj_pct
-        for ch in shuffle_channels:
-            if ch in level_bars:
-                level_bars[ch]["value"] = shuffle_pct
-
-        root.after(100, poll)
-
-    poll()
-    root.mainloop()
+# Colors
+BG = (26, 26, 46)
+PANEL_BG = (34, 34, 58)
+TEXT = (200, 200, 210)
+TEXT_DIM = (120, 120, 140)
+ACCENT = (74, 158, 255)
+BTN_COLOR = (50, 50, 80)
+BTN_HOVER = (65, 65, 100)
+SLIDER_TRACK = (50, 50, 70)
+SLIDER_FILL = ACCENT
+WAVEFORM_COLOR = (74, 158, 255)
+WAVEFORM_PAST = (40, 70, 120)
+PLAYHEAD_COLOR = (255, 68, 68)
+CUE_COLOR = (255, 136, 0)
+BAR_BG = (40, 40, 60)
+GREEN = (80, 200, 120)
+PLACEHOLDER_BG = (42, 42, 62)
+PLACEHOLDER_FG = (85, 85, 112)
 
 
 class ControlPanel:
-    """Launches the control panel in a separate process."""
+    """Pygame-based control panel in a second window."""
 
     def __init__(self, party) -> None:
         self.party = party
-        self.shared = SharedState(
-            set_duration=party.display.set_duration,
-            dj_channels=party.mixer.dj_channels,
-            shuffle_channels=party.mixer.shuffle_channels,
+        self.window = pygame.Window(
+            "Shuffle Partey — Controls", size=(WIDTH, HEIGHT),
         )
-        self._process = mp.Process(
-            target=_run_panel,
-            args=(self.shared, party.mixer.dj_channels, party.mixer.shuffle_channels),
-            daemon=True,
-        )
-        self._process.start()
-        self._fade_out_now = False
+        self._surface = self.window.get_surface()
+
+        # Fonts
+        self._font_big = pygame.font.SysFont("Helvetica", 28, bold=True)
+        self._font_med = pygame.font.SysFont("Helvetica", 14)
+        self._font_small = pygame.font.SysFont("Helvetica", 12)
+        self._font_track = pygame.font.SysFont("Helvetica", 13, bold=True)
+
+        # Flags (consumed by main loop)
         self._start_dj = False
+        self._fade_out_now = False
         self._fadeout_cue_triggered = False
 
-    def update(self) -> None:
-        """Called from the main loop to sync state in both directions."""
-        from shuffle_party.app import State
+        # Track metadata
+        self._track_display = "No track loaded"
+        self._track_name = ""
+        self._duration_ms = 0
+        self._fadeout_cue_ms = -1
+        self._waveform: list[float] = []
+        self._cover_art: pygame.Surface | None = None
+        self._placeholder = self._make_placeholder()
 
-        # Push state to control panel
-        state_map = {State.DJ_SET: 0, State.SHUFFLE: 1, State.IDLE: 2}
-        self.shared.state.value = state_map[self.party.state]
-        self.shared.remaining_seconds.value = self.party.display.remaining_seconds
-        self.shared.dj_level.value = self.party.mixer.dj_level
-        self.shared.shuffle_level.value = self.party.mixer.shuffle_level
+        # Slider state
+        self._duration_value = party.display.set_duration
+        self._volume_value = 1.0
+        self._dragging: str | None = None  # "duration" or "volume"
 
-        # Push MP3 position
-        try:
-            import pygame
-            if pygame.mixer.music.get_busy():
-                self.shared.mp3_pos_ms.value = pygame.mixer.music.get_pos()
-            else:
-                self.shared.mp3_pos_ms.value = -1
-        except Exception:
-            self.shared.mp3_pos_ms.value = -1
+        # Button hover
+        self._hover_btn: str | None = None
 
-        # Check if fadeout cue point has been reached
-        fadeout_ms = self.shared.fadeout_cue_ms.value
-        pos_ms = self.shared.mp3_pos_ms.value
-        if fadeout_ms >= 0 and pos_ms >= fadeout_ms and not self._fadeout_cue_triggered:
-            self._fadeout_cue_triggered = True
-            self._fade_out_now = True
+    def _make_placeholder(self) -> pygame.Surface:
+        """Create an 80x80 placeholder surface for missing cover art."""
+        surf = pygame.Surface((80, 80))
+        surf.fill(PLACEHOLDER_BG)
+        note = self._font_big.render("\u266b", True, PLACEHOLDER_FG)
+        r = note.get_rect(center=(40, 40))
+        surf.blit(note, r)
+        return surf
 
-        # Pull duration changes from control panel
-        if self.shared.duration_changed.value:
-            self.shared.duration_changed.value = 0
-            self.party.display.change_duration(self.shared.new_duration.value)
-
-        # Pull start DJ from control panel
-        if self.shared.start_dj.value:
-            self.shared.start_dj.value = 0
-            self._start_dj = True
-
-        # Pull fade out now from control panel
-        if self.shared.fade_out_now.value:
-            self.shared.fade_out_now.value = 0
-            self._fade_out_now = True
-
-        # Pull master volume changes from control panel
-        if self.shared.volume_changed.value:
-            self.shared.volume_changed.value = 0
-            self.party.mixer.set_master_volume(self.shared.master_volume.value)
+    # -- Public interface (same as before) --
 
     def should_start_dj(self) -> bool:
-        """Check and clear the start-DJ flag."""
         if self._start_dj:
             self._start_dj = False
             return True
         return False
 
     def should_fade_out_now(self) -> bool:
-        """Check and clear the fade-out-now flag."""
         if self._fade_out_now:
             self._fade_out_now = False
             return True
         return False
 
+    def update(self) -> None:
+        """Check fadeout cue, apply pending slider changes."""
+        # Fadeout cue check
+        if self._fadeout_cue_ms >= 0 and not self._fadeout_cue_triggered:
+            if pygame.mixer.music.get_busy():
+                pos = pygame.mixer.music.get_pos()
+                if pos >= self._fadeout_cue_ms:
+                    self._fadeout_cue_triggered = True
+                    self._fade_out_now = True
+
     def set_track_name(self, track_path: str) -> None:
-        """Set track info from ID3 tags, read duration, cover art, and generate waveform."""
+        """Load track metadata, cover art, and waveform."""
         self._fadeout_cue_triggered = False
-        if track_path:
-            name = os.path.basename(track_path)
-            self.shared.track_name.value = name.encode("utf-8")[:255]
-            self.shared.waveform_ready.value = 0
-            self.shared.cover_art_size.value = 0
-            self.shared.fadeout_cue_ms.value = -1
+        self._waveform = []
+        self._cover_art = None
+        self._fadeout_cue_ms = -1
 
-            try:
-                from mutagen.mp3 import MP3  # lazy import: optional dependency
-                audio = MP3(track_path)
-                duration_ms = int(audio.info.length * 1000)
-                self.shared.mp3_duration_ms.value = duration_ms
+        if not track_path:
+            self._track_name = ""
+            self._track_display = "No track loaded"
+            self._duration_ms = 0
+            return
 
-                # Build display string from ID3 tags
-                display = name
-                if audio.tags:
-                    artist = str(audio.tags["TPE1"].text[0]) if "TPE1" in audio.tags else ""
-                    title = str(audio.tags["TIT2"].text[0]) if "TIT2" in audio.tags else ""
-                    if artist and title:
-                        display = f"{artist} — {title}"
-                    elif title:
-                        display = title
-                self.shared.track_display.value = display.encode("utf-8")[:511]
+        name = os.path.basename(track_path)
+        self._track_name = name
+        self._track_display = name
+        self._duration_ms = 0
 
-                if audio.tags:
-                    # Extract cover art
-                    for key in audio.tags:
-                        if key.startswith("APIC"):
-                            art_data = audio.tags[key].data
-                            if len(art_data) <= 200_000:
-                                self.shared.cover_art[:len(art_data)] = art_data
-                                self.shared.cover_art_size.value = len(art_data)
-                            break
+        try:
+            from mutagen.mp3 import MP3
+            audio = MP3(track_path)
+            self._duration_ms = int(audio.info.length * 1000)
 
-                    # Read fadeout cue from TXXX:FADEOUT_MS tag
-                    for key in audio.tags:
-                        if key.startswith("TXXX:") and "FADEOUT" in key.upper():
-                            try:
-                                ms = int(audio.tags[key].text[0])
-                                if 0 < ms < duration_ms:
-                                    self.shared.fadeout_cue_ms.value = ms
-                            except (ValueError, IndexError):
-                                pass
-                            break
+            # Display string from ID3
+            if audio.tags:
+                artist = str(audio.tags["TPE1"].text[0]) if "TPE1" in audio.tags else ""
+                title = str(audio.tags["TIT2"].text[0]) if "TIT2" in audio.tags else ""
+                if artist and title:
+                    self._track_display = f"{artist} — {title}"
+                elif title:
+                    self._track_display = title
 
-                if self.shared.fadeout_cue_ms.value >= 0:
-                    logger.info(
-                        f"Fadeout cue at {self.shared.fadeout_cue_ms.value / 1000:.1f}s "
-                        f"for {name}"
-                    )
-            except Exception as e:
-                logger.warning(f"Could not read MP3 metadata for {track_path} — {e!r}")
-                self.shared.mp3_duration_ms.value = 0
-                self.shared.track_display.value = name.encode("utf-8")[:511]
+                # Cover art
+                for key in audio.tags:
+                    if key.startswith("APIC"):
+                        try:
+                            art_bytes = audio.tags[key].data
+                            img = pygame.image.load(io.BytesIO(art_bytes))
+                            self._cover_art = pygame.transform.smoothscale(img, (80, 80))
+                        except Exception:
+                            pass
+                        break
 
-            self._generate_waveform(track_path)
-        else:
-            self.shared.track_name.value = b"\x00" * 255
-            self.shared.track_display.value = b"\x00" * 511
-            self.shared.mp3_duration_ms.value = 0
-            self.shared.cover_art_size.value = 0
-            self.shared.fadeout_cue_ms.value = -1
-            self.shared.waveform_ready.value = 0
+                # Fadeout cue
+                for key in audio.tags:
+                    if key.startswith("TXXX:") and "FADEOUT" in key.upper():
+                        try:
+                            ms = int(audio.tags[key].text[0])
+                            if 0 < ms < self._duration_ms:
+                                self._fadeout_cue_ms = ms
+                        except (ValueError, IndexError):
+                            pass
+                        break
+
+            if self._fadeout_cue_ms >= 0:
+                logger.info(
+                    f"Fadeout cue at {self._fadeout_cue_ms / 1000:.1f}s for {name}"
+                )
+        except Exception as e:
+            logger.warning(f"Could not read MP3 metadata for {track_path} — {e!r}")
+
+        self._generate_waveform(track_path)
 
     def _generate_waveform(self, track_path: str) -> None:
-        """Generate waveform peak data from an MP3 file."""
+        """Generate waveform peak data from an MP3 file via ffmpeg."""
         try:
             result = subprocess.run(
-                [
-                    "ffmpeg", "-i", track_path,
-                    "-f", "s16le", "-ac", "1", "-ar", "8000",
-                    "-v", "quiet", "-"
-                ],
+                ["ffmpeg", "-i", track_path,
+                 "-f", "s16le", "-ac", "1", "-ar", "8000",
+                 "-v", "quiet", "-"],
                 capture_output=True,
             )
             if result.returncode != 0:
@@ -539,20 +187,280 @@ class ControlPanel:
 
             raw = result.stdout
             samples = struct.unpack(f"<{len(raw) // 2}h", raw)
-
-            # Split into bins and compute peak for each
             bin_size = max(1, len(samples) // WAVEFORM_BINS)
             max_val = 32768.0
+            peaks = []
             for i in range(WAVEFORM_BINS):
                 start = i * bin_size
                 end = min(start + bin_size, len(samples))
                 if start >= len(samples):
-                    self.shared.waveform[i] = 0.0
+                    peaks.append(0.0)
                 else:
                     chunk = samples[start:end]
-                    peak = max(abs(s) for s in chunk) / max_val
-                    self.shared.waveform[i] = min(1.0, peak)
-
-            self.shared.waveform_ready.value = 1
+                    peaks.append(min(1.0, max(abs(s) for s in chunk) / max_val))
+            self._waveform = peaks
         except Exception as e:
             logger.warning(f"Could not generate waveform for {track_path} — {e!r}")
+
+    # -- Event handling --
+
+    def handle_event(self, event: pygame.event.Event) -> None:
+        """Process mouse events for buttons and sliders."""
+        from shuffle_party.app import State
+
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            x, y = event.pos
+            # Button click
+            btn = self._button_rect()
+            if btn.collidepoint(x, y):
+                if self.party.state == State.IDLE:
+                    self._start_dj = True
+                else:
+                    self._fade_out_now = True
+                return
+            # Slider drag start
+            dur_rect = self._duration_slider_rect()
+            if dur_rect.collidepoint(x, y):
+                self._dragging = "duration"
+                self._update_slider("duration", x, dur_rect)
+                return
+            vol_rect = self._volume_slider_rect()
+            if vol_rect.collidepoint(x, y):
+                self._dragging = "volume"
+                self._update_slider("volume", x, vol_rect)
+                return
+
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            self._dragging = None
+
+        elif event.type == pygame.MOUSEMOTION:
+            x, y = event.pos
+            # Hover detection
+            btn = self._button_rect()
+            self._hover_btn = "btn" if btn.collidepoint(x, y) else None
+            # Drag
+            if self._dragging == "duration":
+                self._update_slider("duration", x, self._duration_slider_rect())
+            elif self._dragging == "volume":
+                self._update_slider("volume", x, self._volume_slider_rect())
+
+    def _update_slider(self, name: str, mouse_x: int, rect: pygame.Rect) -> None:
+        t = max(0.0, min(1.0, (mouse_x - rect.x) / rect.width))
+        if name == "duration":
+            raw = int(30 + t * (20 * 60 - 30))
+            rounded = round(raw / 30) * 30
+            self._duration_value = max(30, min(20 * 60, rounded))
+            self.party.display.change_duration(self._duration_value)
+        elif name == "volume":
+            self._volume_value = round(t, 2)
+            self.party.mixer.set_master_volume(self._volume_value)
+
+    # -- Layout rects --
+
+    def _button_rect(self) -> pygame.Rect:
+        return pygame.Rect(10, 55, WIDTH - 20, 36)
+
+    def _duration_slider_rect(self) -> pygame.Rect:
+        return pygame.Rect(50, 120, WIDTH - 100, 16)
+
+    def _volume_slider_rect(self) -> pygame.Rect:
+        return pygame.Rect(50, 440, WIDTH - 100, 16)
+
+    # -- Drawing --
+
+    def draw(self) -> None:
+        """Render the entire control panel."""
+        from shuffle_party.app import State
+
+        surf = self.window.get_surface()
+        surf.fill(BG)
+
+        state = self.party.state
+        y = 10
+
+        # -- Status bar --
+        state_names = {State.IDLE: "IDLE", State.DJ_SET: "DJ SET", State.SHUFFLE: "SHUFFLE"}
+        state_text = self._font_med.render(state_names[state], True, TEXT)
+        surf.blit(state_text, (12, y + 4))
+
+        rem = self.party.display.remaining_seconds
+        time_str = f"{rem // 60:02d}:{rem % 60:02d}"
+        time_text = self._font_big.render(time_str, True, TEXT)
+        surf.blit(time_text, (WIDTH - time_text.get_width() - 12, y))
+        y = 55
+
+        # -- Button --
+        btn = self._button_rect()
+        color = BTN_HOVER if self._hover_btn == "btn" else BTN_COLOR
+        pygame.draw.rect(surf, color, btn, border_radius=4)
+        if state == State.IDLE:
+            label = "Start DJ Set"
+        elif state == State.SHUFFLE:
+            label = "Fade Track Out Now"
+        else:
+            label = "End DJ Set Now"
+        btn_text = self._font_med.render(label, True, TEXT)
+        surf.blit(btn_text, btn_text.get_rect(center=btn.center))
+        y = 100
+
+        # -- Duration slider --
+        self._draw_section_label(surf, "Set Duration", y)
+        y += 18
+        dur_rect = self._duration_slider_rect()
+        t = (self._duration_value - 30) / (20 * 60 - 30)
+        self._draw_slider(surf, dur_rect, t, "30s", "20 min")
+        y += 20
+        m, s = divmod(self._duration_value, 60)
+        dur_label = f"{m} min {s} sec" if s else f"{m} min"
+        dur_text = self._font_small.render(dur_label, True, TEXT_DIM)
+        surf.blit(dur_text, (WIDTH // 2 - dur_text.get_width() // 2, y))
+        y += 22
+
+        # -- Track info --
+        self._draw_section_label(surf, "Shuffle Track", y)
+        y += 20
+
+        # Cover art
+        cover = self._cover_art or self._placeholder
+        surf.blit(cover, (12, y))
+
+        # Track name + time
+        display = self._track_display
+        name_text = self._font_track.render(display, True, TEXT)
+        # Clip to available width
+        max_w = WIDTH - 110
+        if name_text.get_width() > max_w:
+            # Truncate with ellipsis
+            for end in range(len(display), 0, -1):
+                t_surf = self._font_track.render(display[:end] + "...", True, TEXT)
+                if t_surf.get_width() <= max_w:
+                    name_text = t_surf
+                    break
+        surf.blit(name_text, (100, y + 2))
+
+        time_label = self._get_time_label()
+        if time_label:
+            t_text = self._font_small.render(time_label, True, TEXT_DIM)
+            surf.blit(t_text, (100, y + 22))
+
+        y += 88
+
+        # Waveform
+        wf_rect = pygame.Rect(12, y, WIDTH - 24, 60)
+        pygame.draw.rect(surf, PANEL_BG, wf_rect)
+        if self._waveform:
+            self._draw_waveform(surf, wf_rect)
+        y += 68
+
+        # -- Volume slider --
+        self._draw_section_label(surf, "Master Volume", y)
+        y += 18
+        vol_rect = self._volume_slider_rect()
+        self._draw_slider(surf, vol_rect, self._volume_value, "0%", "100%")
+        y += 20
+        vol_text = self._font_small.render(f"{int(self._volume_value * 100)}%", True, TEXT_DIM)
+        surf.blit(vol_text, (WIDTH // 2 - vol_text.get_width() // 2, y))
+        y += 24
+
+        # -- Channel levels --
+        self._draw_section_label(surf, "Channel Levels", y)
+        y += 20
+        channels = [
+            ("DJ L", self.party.mixer.dj_channels[0], self.party.mixer.dj_level),
+            ("DJ R", self.party.mixer.dj_channels[1], self.party.mixer.dj_level),
+            ("Shuffle L", self.party.mixer.shuffle_channels[0], self.party.mixer.shuffle_level),
+            ("Shuffle R", self.party.mixer.shuffle_channels[1], self.party.mixer.shuffle_level),
+        ]
+        for label, ch, level in channels:
+            self._draw_level_bar(surf, y, f"{label} (ch {ch})", level)
+            y += 22
+
+        self.window.flip()
+
+    def _draw_section_label(self, surf: pygame.Surface, text: str, y: int) -> None:
+        label = self._font_small.render(text, True, TEXT_DIM)
+        surf.blit(label, (12, y))
+
+    def _draw_slider(
+        self, surf: pygame.Surface, rect: pygame.Rect, t: float,
+        left_label: str, right_label: str,
+    ) -> None:
+        # Labels
+        l_text = self._font_small.render(left_label, True, TEXT_DIM)
+        r_text = self._font_small.render(right_label, True, TEXT_DIM)
+        surf.blit(l_text, (rect.x - l_text.get_width() - 6, rect.y))
+        surf.blit(r_text, (rect.right + 6, rect.y))
+        # Track
+        pygame.draw.rect(surf, SLIDER_TRACK, rect, border_radius=4)
+        # Fill
+        fill_w = int(rect.width * t)
+        if fill_w > 0:
+            fill_rect = pygame.Rect(rect.x, rect.y, fill_w, rect.height)
+            pygame.draw.rect(surf, SLIDER_FILL, fill_rect, border_radius=4)
+        # Handle
+        hx = rect.x + fill_w
+        pygame.draw.circle(surf, TEXT, (hx, rect.centery), 8)
+
+    def _draw_waveform(self, surf: pygame.Surface, rect: pygame.Rect) -> None:
+        n = len(self._waveform)
+        if n == 0:
+            return
+        bar_w = rect.width / n
+        mid = rect.centery
+        half_h = rect.height / 2
+
+        # Current playback position
+        pos_ms = -1
+        if pygame.mixer.music.get_busy():
+            pos_ms = pygame.mixer.music.get_pos()
+        pos_bin = -1
+        if pos_ms >= 0 and self._duration_ms > 0:
+            pos_bin = int((pos_ms / self._duration_ms) * n)
+
+        for i, peak in enumerate(self._waveform):
+            x = rect.x + int(i * bar_w)
+            h = int(peak * half_h * 0.9)
+            color = WAVEFORM_PAST if (pos_bin >= 0 and i < pos_bin) else WAVEFORM_COLOR
+            if h > 0:
+                pygame.draw.rect(surf, color, (x, mid - h, max(1, int(bar_w) - 1), h * 2))
+
+        # Fadeout cue marker
+        if self._fadeout_cue_ms >= 0 and self._duration_ms > 0:
+            cue_x = rect.x + int((self._fadeout_cue_ms / self._duration_ms) * rect.width)
+            for dy in range(0, rect.height, 6):
+                pygame.draw.line(surf, CUE_COLOR, (cue_x, rect.y + dy),
+                                 (cue_x, rect.y + min(dy + 3, rect.height)), 2)
+
+        # Playhead
+        if pos_bin >= 0:
+            px = rect.x + int((pos_ms / self._duration_ms) * rect.width)
+            pygame.draw.line(surf, PLAYHEAD_COLOR, (px, rect.y), (px, rect.bottom), 2)
+
+    def _draw_level_bar(
+        self, surf: pygame.Surface, y: int, label: str, level: float,
+    ) -> None:
+        l_text = self._font_small.render(label, True, TEXT_DIM)
+        surf.blit(l_text, (12, y + 1))
+        bar_x = 140
+        bar_w = WIDTH - bar_x - 12
+        bar_rect = pygame.Rect(bar_x, y + 2, bar_w, 14)
+        pygame.draw.rect(surf, BAR_BG, bar_rect, border_radius=2)
+        fill_w = int(bar_w * level)
+        if fill_w > 0:
+            fill_rect = pygame.Rect(bar_x, y + 2, fill_w, 14)
+            pygame.draw.rect(surf, GREEN, fill_rect, border_radius=2)
+
+    def _get_time_label(self) -> str:
+        if not self._track_name:
+            return ""
+        dur = self._duration_ms
+        if pygame.mixer.music.get_busy():
+            pos = pygame.mixer.music.get_pos()
+            if pos >= 0 and dur > 0:
+                rem_s = max(0, (dur - pos) / 1000)
+                dur_s = dur / 1000
+                return (f"-{int(rem_s) // 60:02d}:{int(rem_s) % 60:02d}"
+                        f" / {int(dur_s) // 60:02d}:{int(dur_s) % 60:02d}")
+        if dur > 0:
+            return f"Ready — {dur // 60000:02d}:{(dur // 1000) % 60:02d}"
+        return "Ready"

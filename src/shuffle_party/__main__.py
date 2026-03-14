@@ -1,7 +1,8 @@
 """Shuffle Partey — main entry point.
 
-Runs the pygame event loop, coordinating the state machine with
-display rendering, audio playback, and hardware I/O.
+Runs the pygame event loop with two windows: a display window (logo/timer)
+and a control panel. Coordinates the state machine with audio playback
+and hardware I/O.
 """
 
 import logging
@@ -59,8 +60,10 @@ def run() -> None:
     pygame.init()
     pygame.mixer.init()
 
-    screen = pygame.display.set_mode((270, 180), pygame.RESIZABLE)
-    pygame.display.set_caption("Shuffle Partey")
+    # Create both windows
+    display_window = pygame.Window(
+        "Shuffle Partey", size=(270, 180), resizable=True,
+    )
 
     clock = pygame.time.Clock()
 
@@ -71,8 +74,6 @@ def run() -> None:
         logo_original = None
 
     party = ShuffleParty()
-
-    # Launch control panel in a separate process
     control = ControlPanel(party)
 
     # Set up the music end event so we detect when shuffle tracks finish
@@ -94,7 +95,8 @@ def run() -> None:
     running = True
     while running:
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+            # Window close
+            if event.type == pygame.WINDOWCLOSE:
                 running = False
 
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
@@ -110,6 +112,11 @@ def run() -> None:
                 if party.state == State.SHUFFLE:
                     party.on_shuffle_track_ended()
 
+            # Route mouse/keyboard events to control panel window
+            elif (hasattr(event, "window")
+                  and event.window == control.window):
+                control.handle_event(event)
+
         # Advance mixer crossfade
         was_fading = party.mixer.is_fading
         party.mixer.tick()
@@ -119,7 +126,7 @@ def run() -> None:
             pygame.mixer.music.stop()
             preload_track(party, control)
 
-        # Sync shared state with control panel
+        # Update control panel (fadeout cue check)
         control.update()
 
         # Handle start DJ button (IDLE -> DJ_SET)
@@ -159,7 +166,8 @@ def run() -> None:
             else:
                 pygame.mixer.music.set_volume(1.0 - fade_t)
 
-        # Render with crossfade
+        # -- Render display window --
+        screen = display_window.get_surface()
         screen.fill(BG_COLOR)
         w, h = screen.get_size()
 
@@ -195,7 +203,11 @@ def run() -> None:
             rect = text_surface.get_rect(center=(w // 2, h // 2))
             screen.blit(text_surface, rect)
 
-        pygame.display.flip()
+        display_window.flip()
+
+        # -- Render control panel --
+        control.draw()
+
         clock.tick(30)
 
     pygame.quit()
