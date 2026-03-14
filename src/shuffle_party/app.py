@@ -39,6 +39,12 @@ class ShuffleParty:
         self.track_picker = TrackPicker(config.TRACKS_DIR)
         self.pending_track: str | None = None
 
+    def reset(self) -> None:
+        """Reset to IDLE state, cancelling any active fades."""
+        self.state = State.IDLE
+        self.mixer.reset()
+        self.display.remaining_seconds = self.display.set_duration
+
     def start_dj_set(self) -> None:
         """Transition from IDLE to DJ_SET. Timer starts after crossfade completes."""
         if self.state != State.IDLE:

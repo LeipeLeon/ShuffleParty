@@ -103,6 +103,12 @@ class Mixer:
                      self.dj_channels, dj_value,
                      self.shuffle_channels, shuffle_value, t)
 
+    def reset(self) -> None:
+        """Cancel any active fade and reset levels to initial state."""
+        self._fade = None
+        self.dj_level = 1.0
+        self.shuffle_level = 0.0
+
     def set_master_volume(self, value: float) -> None:
         """Set the main LR fader (0.0–1.0)."""
         if self._client is None:

@@ -7,6 +7,7 @@ and hardware I/O.
 
 import logging
 import os
+import signal
 import sys
 import time
 
@@ -94,17 +95,24 @@ def run() -> None:
     except Exception:
         pass
 
+    # Cached display font (created on first use / resize)
+    display_font = None
+    display_font_size = 0
+
     # Load shuffle logo if available
     try:
         logo_original = pygame.image.load("de-shuffle.png")
     except Exception:
         logo_original = None
+    logo_scaled = None
+    logo_scaled_size = (0, 0)
 
     party = ShuffleParty()
     control = ControlPanel(
         party,
         fullscreen=multi_display or is_reterminal,
         display_index=0 if multi_display else None,
+        volume_step=config.VOLUME_STEP,
     )
     buttons = Buttons(config.BUTTON_DEVICE)
 
@@ -125,7 +133,6 @@ def run() -> None:
     crossfading = False
     track_played = False
 
-    import signal
     signal.signal(signal.SIGINT, lambda *_: pygame.event.post(pygame.event.Event(pygame.QUIT)))
 
     running = True
@@ -207,11 +214,7 @@ def run() -> None:
         # Handle reset to IDLE
         if control.should_reset():
             pygame.mixer.music.stop()
-            party.state = State.IDLE
-            party.mixer._fade = None
-            party.mixer.dj_level = 1.0
-            party.mixer.shuffle_level = 0.0
-            party.display.remaining_seconds = party.display.set_duration
+            party.reset()
             crossfading = False
             fade_t = 1.0
             track_played = False
@@ -275,7 +278,11 @@ def run() -> None:
                 scale = min(w / orig_w, h / orig_h)
                 logo_w = int(orig_w * scale)
                 logo_h = int(orig_h * scale)
-                logo = pygame.transform.smoothscale(logo_original, (logo_w, logo_h))
+                target_size = (logo_w, logo_h)
+                if logo_scaled is None or logo_scaled_size != target_size:
+                    logo_scaled = pygame.transform.smoothscale(logo_original, target_size)
+                    logo_scaled_size = target_size
+                logo = logo_scaled.copy()
                 logo.set_alpha(logo_alpha)
                 logo_x = (w - logo_w) // 2
                 logo_y = (h - logo_h) // 2
@@ -283,11 +290,14 @@ def run() -> None:
 
             # Draw timer layer
             if timer_alpha > 0:
-                font = pygame.font.SysFont(
-                    "SF Mono,DejaVu Sans Mono,Consolas,monospace", int(h * 0.7),
-                )
+                target_size = int(h * 0.7)
+                if display_font is None or display_font_size != target_size:
+                    display_font = pygame.font.SysFont(
+                        "SF Mono,DejaVu Sans Mono,Consolas,monospace", target_size,
+                    )
+                    display_font_size = target_size
                 time_str = party.display.format_time()
-                text_surface = font.render(time_str, True, TIMER_COLOR)
+                text_surface = display_font.render(time_str, True, TIMER_COLOR)
                 text_surface.set_alpha(timer_alpha)
                 rect = text_surface.get_rect(center=(w // 2, h // 2))
                 screen.blit(text_surface, rect)

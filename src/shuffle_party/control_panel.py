@@ -44,6 +44,7 @@ class ControlPanel:
 
     def __init__(
         self, party, fullscreen: bool = False, display_index: int | None = None,
+        volume_step: float = 0.05,
     ) -> None:
         self.party = party
         kwargs: dict = {}
@@ -61,6 +62,8 @@ class ControlPanel:
         self._font_med = pygame.font.SysFont("Helvetica", 14)
         self._font_small = pygame.font.SysFont("Helvetica", 12)
         self._font_track = pygame.font.SysFont("Helvetica", 13, bold=True)
+        self._timer_font: pygame.font.Font | None = None
+        self._timer_font_size = 0
 
         # Flags (consumed by main loop)
         self._start_dj = False
@@ -86,6 +89,7 @@ class ControlPanel:
         # Slider state
         self._duration_value = party.display.set_duration
         self._volume_value = 1.0
+        self._volume_step = volume_step
         self._dragging: str | None = None  # "duration" or "volume"
 
         # Set by main loop
@@ -94,6 +98,8 @@ class ControlPanel:
 
         # Load shuffle logo for timer area crossfade
         self._logo: pygame.Surface | None = None
+        self._logo_scaled: pygame.Surface | None = None
+        self._logo_scaled_size: tuple[int, int] = (0, 0)
         try:
             self._logo = pygame.image.load("de-shuffle.png")
         except Exception:
@@ -313,9 +319,9 @@ class ControlPanel:
             for action, rect in self._hw_btn_rects.items():
                 if rect.collidepoint(x, y):
                     if action == "volume_down":
-                        self.nudge_volume(-0.05)
+                        self.nudge_volume(-self._volume_step)
                     elif action == "volume_up":
-                        self.nudge_volume(0.05)
+                        self.nudge_volume(self._volume_step)
                     elif action == "skip_track":
                         if self.party.state == State.DJ_SET and not self.crossfading:
                             self._skip_track = True
@@ -495,7 +501,11 @@ class ControlPanel:
             scale = min(timer_w / orig_w, fader_h / orig_h)
             logo_w = int(orig_w * scale)
             logo_h = int(orig_h * scale)
-            logo = pygame.transform.smoothscale(self._logo, (logo_w, logo_h))
+            target_size = (logo_w, logo_h)
+            if self._logo_scaled is None or self._logo_scaled_size != target_size:
+                self._logo_scaled = pygame.transform.smoothscale(self._logo, target_size)
+                self._logo_scaled_size = target_size
+            logo = self._logo_scaled.copy()
             logo.set_alpha(logo_alpha)
             logo_x = timer_rect.centerx - logo_w // 2
             logo_y = timer_rect.centery - logo_h // 2
@@ -505,11 +515,13 @@ class ControlPanel:
         if timer_alpha > 0:
             rem = self.party.display.remaining_seconds
             time_str = f"{rem // 60:02d}:{rem % 60:02d}"
-            timer_font_size = min(int(fader_h * 0.6), int(timer_w * 0.4))
-            timer_font = pygame.font.SysFont(
-                "SF Mono,DejaVu Sans Mono,Consolas,monospace", max(40, timer_font_size),
-            )
-            timer_text = timer_font.render(time_str, True, TEXT)
+            target_size = max(40, min(int(fader_h * 0.6), int(timer_w * 0.4)))
+            if self._timer_font is None or self._timer_font_size != target_size:
+                self._timer_font = pygame.font.SysFont(
+                    "SF Mono,DejaVu Sans Mono,Consolas,monospace", target_size,
+                )
+                self._timer_font_size = target_size
+            timer_text = self._timer_font.render(time_str, True, TEXT)
             timer_text.set_alpha(timer_alpha)
             surf.blit(timer_text, timer_text.get_rect(center=timer_rect.center))
         y += fader_h + 8

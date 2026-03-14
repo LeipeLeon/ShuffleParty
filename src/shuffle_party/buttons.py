@@ -31,12 +31,14 @@ class Buttons:
             return
 
         try:
-            from evdev import InputDevice
+            from evdev import InputDevice, ecodes
+            self._ecodes = ecodes
             self._device = InputDevice(device_path)
             self._device.grab()  # exclusive access so keys don't echo
             self._available = True
             logger.info("reTerminal buttons active on %s (%s)", device_path, self._device.name)
         except ImportError:
+            self._ecodes = None
             logger.info("evdev not installed — reTerminal buttons disabled.")
         except Exception as e:
             logger.warning("Could not open %s — %r", device_path, e)
@@ -56,9 +58,8 @@ class Buttons:
 
         actions: list[str] = []
         try:
-            from evdev import ecodes
             for event in self._device.read():
-                if event.type != ecodes.EV_KEY:
+                if event.type != self._ecodes.EV_KEY:
                     continue
                 # value 1 = key down, 0 = key up, 2 = repeat
                 if event.value != 1:
