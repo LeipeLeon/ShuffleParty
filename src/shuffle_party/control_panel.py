@@ -460,8 +460,8 @@ class ControlPanel:
         col_w = w // 6
 
         # -- Duration slider (in the left 2 columns of the footer) --
-        dur_x = 8
-        dur_w = col_w * 2 - 16
+        dur_x = 20
+        dur_w = col_w * 2 - 40
         dur_cy = btn_y + btn_h // 2
         self._dur_slider_rect = pygame.Rect(dur_x, dur_cy - 8, dur_w, 16)
         dur_rect = self._dur_slider_rect
