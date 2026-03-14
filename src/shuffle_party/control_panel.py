@@ -436,8 +436,7 @@ class ControlPanel:
         y += 18
         h = surf.get_height()
         btn_h = 56
-        dur_area = 50  # duration slider height above buttons
-        fader_h = h - btn_h - dur_area - y - 8
+        fader_h = h - btn_h - y - 8
         faders = [
             ("Master", self._volume_value, ACCENT, True),
             ("Shuffle", self.party.mixer.shuffle_level, ACCENT, False),
@@ -458,20 +457,22 @@ class ControlPanel:
 
         # -- Virtual reTerminal buttons (pinned to bottom, 6 equal columns, last 4 are buttons) --
         btn_y = h - btn_h
+        col_w = w // 6
 
-        # -- Duration slider (just above buttons) --
-        dur_y = btn_y - 50
-        self._draw_section_label(surf, "Set Duration", dur_y)
-        dur_y += 18
-        self._dur_slider_rect = pygame.Rect(50, dur_y, w - 100, 16)
+        # -- Duration slider (in the left 2 columns of the footer) --
+        dur_x = 8
+        dur_w = col_w * 2 - 16
+        dur_cy = btn_y + btn_h // 2
+        self._dur_slider_rect = pygame.Rect(dur_x, dur_cy - 8, dur_w, 16)
         dur_rect = self._dur_slider_rect
         t = (self._duration_value - 30) / (20 * 60 - 30)
-        self._draw_slider(surf, dur_rect, t, "30s", "20 min")
+        self._draw_slider(surf, dur_rect, t, "30s", "20m")
         m, s = divmod(self._duration_value, 60)
-        dur_label = f"{m} min {s} sec" if s else f"{m} min"
+        dur_label = f"{m}:{s:02d}" if s else f"{m} min"
         dur_text = self._font_small.render(dur_label, True, TEXT_DIM)
-        surf.blit(dur_text, (w // 2 - dur_text.get_width() // 2, dur_y + 20))
-        col_w = w // 6
+        surf.blit(dur_text, (dur_x + dur_w // 2 - dur_text.get_width() // 2, dur_cy + 12))
+        label_text = self._font_small.render("Set Duration", True, TEXT_DIM)
+        surf.blit(label_text, (dur_x + dur_w // 2 - label_text.get_width() // 2, dur_cy - 24))
         self._hw_btn_rects = {}
 
         hw_buttons = [
