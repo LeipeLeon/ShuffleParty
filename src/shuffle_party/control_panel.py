@@ -15,8 +15,8 @@ import pygame
 logger = logging.getLogger(__name__)
 
 # Layout constants
-WIDTH = 480
-HEIGHT = 620
+WIDTH = 1280
+HEIGHT = 720
 WAVEFORM_BINS = 200
 
 # Colors
