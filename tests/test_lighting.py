@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
-from lighting import Lighting
+from shuffle_party.lighting import Lighting
 
 
 class TestLighting:
@@ -11,7 +11,7 @@ class TestLighting:
     def _make_lighting(self):
         """Create Lighting with mocked python-osc."""
         mock_client = MagicMock()
-        with patch("lighting.SimpleUDPClient", return_value=mock_client) as mock_cls:
+        with patch("shuffle_party.lighting.SimpleUDPClient", return_value=mock_client) as mock_cls:
             lighting = Lighting(host="127.0.0.1", port=7700)
         return lighting, mock_client
 
@@ -27,7 +27,7 @@ class TestLighting:
 
     def test_graceful_degradation_when_qlc_unreachable(self):
         """Lighting should not crash when QLC+ is unreachable."""
-        with patch("lighting.SimpleUDPClient", side_effect=Exception("unreachable")):
+        with patch("shuffle_party.lighting.SimpleUDPClient", side_effect=Exception("unreachable")):
             lighting = Lighting(host="x", port=1)
 
         # Should not raise

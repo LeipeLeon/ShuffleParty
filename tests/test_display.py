@@ -1,7 +1,7 @@
 """Tests for countdown display logic (no pygame rendering)."""
 
 import pytest
-from display import Display
+from shuffle_party.display import Display
 
 
 class TestDisplay:

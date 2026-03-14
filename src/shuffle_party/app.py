@@ -6,10 +6,10 @@ Two states cycling forever:
 
 from enum import Enum, auto
 
-from mixer import Mixer
-from lighting import Lighting
-from display import Display
-from track_picker import TrackPicker
+from shuffle_party.mixer import Mixer
+from shuffle_party.lighting import Lighting
+from shuffle_party.display import Display
+from shuffle_party.track_picker import TrackPicker
 
 
 # Configuration — tweak these values at the top of the file

@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
-from shuffle_party import ShuffleParty, State
+from shuffle_party.app import ShuffleParty, State
 
 
 class TestStateMachine:
@@ -11,10 +11,10 @@ class TestStateMachine:
 
     def setup_method(self):
         """Create a ShuffleParty instance with all hardware mocked out."""
-        with patch("shuffle_party.Mixer"), \
-             patch("shuffle_party.Lighting"), \
-             patch("shuffle_party.Display"), \
-             patch("shuffle_party.TrackPicker"):
+        with patch("shuffle_party.app.Mixer"), \
+             patch("shuffle_party.app.Lighting"), \
+             patch("shuffle_party.app.Display"), \
+             patch("shuffle_party.app.TrackPicker"):
             self.party = ShuffleParty()
 
     def test_initial_state_is_dj_set(self):

@@ -4,7 +4,7 @@ import os
 import pytest
 from unittest.mock import patch
 
-from track_picker import TrackPicker
+from shuffle_party.track_picker import TrackPicker
 
 
 @pytest.fixture

@@ -65,13 +65,19 @@ A single Python process running on a Raspberry Pi covers all requirements:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install pygame-ce python-osc xair-api
+pip install -e ".[dev]"
 ```
 
 Run with:
 
 ```bash
-python main.py
+python -m shuffle_party
+```
+
+Or just use the startup script (handles venv + deps automatically):
+
+```bash
+./start.sh
 ```
 
 Put your shuffle transition MP3s in `./tracks/` before starting.

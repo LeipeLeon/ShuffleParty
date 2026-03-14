@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import patch, MagicMock, call
 
-from mixer import Mixer
+from shuffle_party.mixer import Mixer
 
 
 class TestMixer:
@@ -11,7 +11,7 @@ class TestMixer:
     def _make_mixer(self, mock_xair=None):
         """Create a Mixer with mocked xair_api."""
         with patch.dict("sys.modules", {"xair_api": mock_xair or MagicMock()}):
-            with patch("mixer.time"):
+            with patch("shuffle_party.mixer.time"):
                 return Mixer(host="192.168.1.100", port=10023, channel=1, fade_duration=3.0)
 
     def test_fade_out_sends_decreasing_values(self):
@@ -20,7 +20,7 @@ class TestMixer:
         mock_xair.connect.return_value = mock_client
         mixer = self._make_mixer(mock_xair)
 
-        with patch("mixer.time"):
+        with patch("shuffle_party.mixer.time"):
             mixer.fade_out()
 
         calls = mock_client.send.call_args_list
@@ -37,7 +37,7 @@ class TestMixer:
         mock_xair.connect.return_value = mock_client
         mixer = self._make_mixer(mock_xair)
 
-        with patch("mixer.time"):
+        with patch("shuffle_party.mixer.time"):
             mixer.fade_in()
 
         calls = mock_client.send.call_args_list
@@ -53,7 +53,7 @@ class TestMixer:
         mock_xair.connect.return_value = mock_client
         mixer = self._make_mixer(mock_xair)
 
-        with patch("mixer.time"):
+        with patch("shuffle_party.mixer.time"):
             mixer.fade_out()
 
         for c in mock_client.send.call_args_list:
@@ -65,7 +65,7 @@ class TestMixer:
         mock_xair.connect.return_value = mock_client
 
         with patch.dict("sys.modules", {"xair_api": mock_xair}):
-            with patch("mixer.time"):
+            with patch("shuffle_party.mixer.time"):
                 mixer = Mixer(host="x", port=1, channel=5, fade_duration=1.0)
                 mixer.fade_out()
 

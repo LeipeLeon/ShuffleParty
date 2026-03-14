@@ -10,9 +10,9 @@ fi
 
 source .venv/bin/activate
 
-if ! python -c "import pygame, pythonosc" 2>/dev/null; then
+if ! python -c "import shuffle_party" 2>/dev/null; then
     echo "Installing dependencies..."
-    pip install pygame-ce python-osc xair-api
+    pip install -e .
 fi
 
-python main.py
+python -m shuffle_party
