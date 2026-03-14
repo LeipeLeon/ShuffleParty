@@ -23,5 +23,9 @@ SHUFFLE_CHANNEL_R = int(os.environ.get("SHUFFLE_CHANNEL_R", 2))
 QLC_HOST = os.environ.get("QLC_HOST", "127.0.0.1")
 QLC_PORT = int(os.environ.get("QLC_PORT", 7700))
 
+# reTerminal buttons (evdev)
+BUTTON_DEVICE = os.environ.get("BUTTON_DEVICE", "/dev/input/event0")
+VOLUME_STEP = float(os.environ.get("VOLUME_STEP", 0.05))
+
 # Shuffle tracks
 TRACKS_DIR = os.environ.get("TRACKS_DIR", "./tracks/")

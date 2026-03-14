@@ -11,6 +11,7 @@ Two-state machine: `IDLE -> DJ_SET <-> SHUFFLE`
 - `lighting.py` — QLC+ lighting scene control via OSC
 - `display.py` — Countdown timer logic (pygame rendering separate)
 - `track_picker.py` — Random track selection from `tracks/` directory, no repeats until all played
+- `buttons.py` — reTerminal front-panel button input via evdev (non-blocking, graceful no-op on non-Linux)
 - `config.py` — Environment-variable-based configuration with defaults
 
 ## Tech Stack
@@ -20,6 +21,7 @@ Two-state machine: `IDLE -> DJ_SET <-> SHUFFLE`
 - `python-osc` for QLC+ lighting
 - `xair-api` for Behringer XR12 mixer
 - `mutagen` for audio metadata
+- `evdev` for reTerminal button input (Linux only)
 
 ## Development
 

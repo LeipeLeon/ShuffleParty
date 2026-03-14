@@ -14,6 +14,7 @@ import pygame
 
 from shuffle_party import config
 from shuffle_party.app import ShuffleParty, State
+from shuffle_party.buttons import Buttons
 from shuffle_party.control_panel import ControlPanel
 
 logging.basicConfig(
@@ -93,6 +94,7 @@ def run() -> None:
 
     party = ShuffleParty()
     control = ControlPanel(party)
+    buttons = Buttons(config.BUTTON_DEVICE)
 
     # Set up the music end event so we detect when shuffle tracks finish
     pygame.mixer.music.set_endevent(SHUFFLE_TRACK_END)
@@ -160,6 +162,20 @@ def run() -> None:
 
         # Update control panel (fadeout cue check)
         control.update()
+
+        # Poll reTerminal front-panel buttons
+        for action in buttons.poll():
+            if action == "volume_down":
+                control.nudge_volume(-config.VOLUME_STEP)
+            elif action == "volume_up":
+                control.nudge_volume(config.VOLUME_STEP)
+            elif action == "skip_track" and party.state == State.DJ_SET and not crossfading:
+                control._skip_track = True
+            elif action == "crossfade":
+                if party.state == State.DJ_SET:
+                    control._fade_out_now = True
+                elif party.state == State.IDLE:
+                    control._start_dj = True
 
         # Handle start DJ button (IDLE -> DJ_SET)
         if control.should_start_dj() and party.state == State.IDLE:
@@ -248,6 +264,7 @@ def run() -> None:
 
         clock.tick(30)
 
+    buttons.close()
     pygame.quit()
     sys.exit()
 
