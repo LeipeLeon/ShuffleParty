@@ -243,6 +243,7 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
             art_size = shared.cover_art_size.value
             if raw_name != cover_loaded_for[0]:
                 cover_loaded_for[0] = raw_name
+                waveform_drawn[0] = False
                 if art_size > 0:
                     try:
                         import io
