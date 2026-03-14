@@ -59,7 +59,7 @@ def run() -> None:
     pygame.init()
     pygame.mixer.init()
 
-    screen = pygame.display.set_mode((800, 300), pygame.RESIZABLE)
+    screen = pygame.display.set_mode((270, 180), pygame.RESIZABLE)
     pygame.display.set_caption("Shuffle Partey")
 
     clock = pygame.time.Clock()
