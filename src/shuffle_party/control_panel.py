@@ -7,6 +7,9 @@ Communicates with the main pygame process via multiprocessing shared state.
 import multiprocessing as mp
 import os
 
+# Number of bars in the waveform display
+WAVEFORM_BINS = 200
+
 
 class SharedState:
     """Shared state between the pygame process and the control panel process."""
@@ -18,6 +21,8 @@ class SharedState:
         self.mp3_pos_ms = mp.Value("i", -1)  # -1 = not playing
         self.mp3_duration_ms = mp.Value("i", 0)  # total track length
         self.track_name = mp.Array("c", 256)  # current track filename
+        self.waveform = mp.Array("f", WAVEFORM_BINS)  # normalized peak values 0.0–1.0
+        self.waveform_ready = mp.Value("i", 0)  # flag
 
         # Written by control panel (read by main process)
         self.new_duration = mp.Value("i", set_duration)
@@ -37,7 +42,7 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
 
     root = tk.Tk()
     root.title("Shuffle Partey — Controls")
-    root.geometry("480x520")
+    root.geometry("480x580")
     root.resizable(False, False)
 
     style = ttk.Style()
@@ -97,8 +102,13 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
     track_name_var = tk.StringVar(value="No track playing")
     ttk.Label(frame_mp3, textvariable=track_name_var, style="Status.TLabel").pack(anchor="w")
 
-    mp3_progress = ttk.Progressbar(frame_mp3, mode="determinate", maximum=100)
-    mp3_progress.pack(fill="x", pady=(4, 0))
+    waveform_height = 60
+    waveform_canvas = tk.Canvas(
+        frame_mp3, height=waveform_height, bg="#1a1a2e",
+        highlightthickness=0,
+    )
+    waveform_canvas.pack(fill="x", pady=(4, 0))
+    waveform_drawn = [False]  # mutable flag for whether waveform bars are drawn
 
     mp3_time_var = tk.StringVar(value="")
     ttk.Label(frame_mp3, textvariable=mp3_time_var, style="Status.TLabel").pack(anchor="e")
@@ -157,7 +167,7 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
         seconds = rem % 60
         remaining_var.set(f"{minutes:02d}:{seconds:02d}")
 
-        # MP3 progress
+        # MP3 waveform + playhead
         pos = shared.mp3_pos_ms.value
         duration = shared.mp3_duration_ms.value
         if pos >= 0 and duration > 0:
@@ -175,10 +185,34 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
             if name:
                 track_name_var.set(name)
 
-            pct = min(100, (pos / duration) * 100)
-            mp3_progress.configure(mode="determinate", value=pct)
+            # Draw waveform bars once when a new track loads
+            if shared.waveform_ready.value and not waveform_drawn[0]:
+                waveform_canvas.delete("waveform")
+                canvas_w = waveform_canvas.winfo_width() or 460
+                bar_w = max(1, canvas_w / WAVEFORM_BINS)
+                mid = waveform_height / 2
+                peaks = list(shared.waveform[:])
+                for i, peak in enumerate(peaks):
+                    x = i * bar_w
+                    h = peak * mid * 0.9
+                    waveform_canvas.create_rectangle(
+                        x, mid - h, x + bar_w - 1, mid + h,
+                        fill="#4a9eff", outline="", tags="waveform",
+                    )
+                waveform_drawn[0] = True
+
+            # Draw playhead
+            waveform_canvas.delete("playhead")
+            if duration > 0:
+                canvas_w = waveform_canvas.winfo_width() or 460
+                x = (pos / duration) * canvas_w
+                waveform_canvas.create_line(
+                    x, 0, x, waveform_height,
+                    fill="#ff4444", width=2, tags="playhead",
+                )
         else:
-            mp3_progress.configure(mode="determinate", value=0)
+            waveform_canvas.delete("waveform", "playhead")
+            waveform_drawn[0] = False
             track_name_var.set("No track playing")
             mp3_time_var.set("")
 
@@ -245,16 +279,57 @@ class ControlPanel:
             self.party.mixer.set_master_volume(self.shared.master_volume.value)
 
     def set_track_name(self, track_path: str) -> None:
-        """Set the current track name and read its duration."""
+        """Set the current track name, read its duration, and generate waveform."""
         if track_path:
             name = os.path.basename(track_path)
             self.shared.track_name.value = name.encode("utf-8")[:255]
+            self.shared.waveform_ready.value = 0
             try:
                 from mutagen.mp3 import MP3
                 audio = MP3(track_path)
                 self.shared.mp3_duration_ms.value = int(audio.info.length * 1000)
             except Exception:
                 self.shared.mp3_duration_ms.value = 0
+            self._generate_waveform(track_path)
         else:
             self.shared.track_name.value = b"\x00" * 255
             self.shared.mp3_duration_ms.value = 0
+            self.shared.waveform_ready.value = 0
+
+    def _generate_waveform(self, track_path: str) -> None:
+        """Generate waveform peak data from an MP3 file."""
+        try:
+            import subprocess
+            import struct
+
+            # Decode MP3 to raw 16-bit mono PCM using ffmpeg
+            result = subprocess.run(
+                [
+                    "ffmpeg", "-i", track_path,
+                    "-f", "s16le", "-ac", "1", "-ar", "8000",
+                    "-v", "quiet", "-"
+                ],
+                capture_output=True,
+            )
+            if result.returncode != 0:
+                return
+
+            raw = result.stdout
+            samples = struct.unpack(f"<{len(raw) // 2}h", raw)
+
+            # Split into bins and compute peak for each
+            bin_size = max(1, len(samples) // WAVEFORM_BINS)
+            max_val = 32768.0
+            for i in range(WAVEFORM_BINS):
+                start = i * bin_size
+                end = min(start + bin_size, len(samples))
+                if start >= len(samples):
+                    self.shared.waveform[i] = 0.0
+                else:
+                    chunk = samples[start:end]
+                    peak = max(abs(s) for s in chunk) / max_val
+                    self.shared.waveform[i] = min(1.0, peak)
+
+            self.shared.waveform_ready.value = 1
+        except Exception:
+            pass
