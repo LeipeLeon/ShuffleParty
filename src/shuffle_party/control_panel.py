@@ -70,7 +70,7 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
 
     slider_frame = ttk.Frame(frame_duration)
     slider_frame.pack(fill="x")
-    ttk.Label(slider_frame, text="5 min").pack(side="left")
+    ttk.Label(slider_frame, text="30s").pack(side="left")
 
     def on_duration_changed(value):
         raw = int(float(value))
@@ -81,12 +81,12 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
         shared.duration_changed.value = 1
 
     duration_slider = ttk.Scale(
-        slider_frame, from_=5 * 60, to=60 * 60,
+        slider_frame, from_=30, to=20 * 60,
         orient="horizontal", variable=duration_var,
         command=on_duration_changed,
     )
     duration_slider.pack(side="left", fill="x", expand=True, padx=5)
-    ttk.Label(slider_frame, text="60 min").pack(side="left")
+    ttk.Label(slider_frame, text="20 min").pack(side="left")
     ttk.Label(frame_duration, textvariable=duration_label, style="Status.TLabel").pack()
 
     # -- MP3 progress --
