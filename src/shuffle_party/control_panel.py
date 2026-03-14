@@ -83,12 +83,14 @@ class ControlPanel:
         self._vol_slider_rect = pygame.Rect(0, 0, 0, 0)
 
     def _make_placeholder(self) -> pygame.Surface:
-        """Create an 80x80 placeholder surface for missing cover art."""
+        """Create an 80x80 placeholder surface with a music note icon."""
         surf = pygame.Surface((80, 80))
         surf.fill(PLACEHOLDER_BG)
-        note = self._font_big.render("\u266b", True, PLACEHOLDER_FG)
-        r = note.get_rect(center=(40, 40))
-        surf.blit(note, r)
+        # Draw a simple music note: oval head + stem
+        color = (90, 90, 120)
+        pygame.draw.ellipse(surf, color, (28, 42, 18, 14))
+        pygame.draw.line(surf, color, (45, 46), (45, 20), 3)
+        pygame.draw.line(surf, color, (45, 20), (55, 24), 3)
         return surf
 
     # -- Public interface (same as before) --
