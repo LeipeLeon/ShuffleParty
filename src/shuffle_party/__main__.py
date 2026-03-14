@@ -5,6 +5,7 @@ display rendering, audio playback, and hardware I/O.
 """
 
 import sys
+import time
 import pygame
 
 from shuffle_party.app import ShuffleParty, State
@@ -17,6 +18,7 @@ SHUFFLE_TRACK_END = pygame.USEREVENT + 2
 # Display constants
 BG_COLOR = (0, 0, 0)
 TIMER_COLOR = (255, 255, 255)
+CROSSFADE_DURATION = 3.0  # seconds, matches audio fade
 
 
 def run() -> None:
@@ -49,6 +51,11 @@ def run() -> None:
     party.display.start_timer()
     party.lighting.activate_dj_set()
     party.mixer.fade_in()
+
+    # Crossfade state
+    prev_state = party.state
+    crossfade_start = 0.0  # timestamp when transition began
+    crossfading = False
 
     running = True
     while running:
@@ -93,20 +100,47 @@ def run() -> None:
                     except Exception as e:
                         print(f"Warning: Could not play {track} — {e}")
 
-        # Render
+        # Detect state change and start crossfade
+        if party.state != prev_state:
+            crossfade_start = time.monotonic()
+            crossfading = True
+            prev_state = party.state
+
+        # Calculate crossfade progress (0.0 = just started, 1.0 = done)
+        if crossfading:
+            elapsed = time.monotonic() - crossfade_start
+            fade_t = min(1.0, elapsed / CROSSFADE_DURATION)
+            if fade_t >= 1.0:
+                crossfading = False
+        else:
+            fade_t = 1.0
+
+        # Render with crossfade
         screen.fill(BG_COLOR)
         w, h = screen.get_size()
 
-        if party.state == State.DJ_SET:
+        # Determine alpha for each layer
+        if party.state == State.SHUFFLE:
+            timer_alpha = int(255 * (1.0 - fade_t))
+            logo_alpha = int(255 * fade_t)
+        else:
+            timer_alpha = int(255 * fade_t)
+            logo_alpha = int(255 * (1.0 - fade_t))
+
+        # Draw logo layer
+        if logo_original and logo_alpha > 0:
+            logo = pygame.transform.scale(logo_original, (w, h))
+            logo.set_alpha(logo_alpha)
+            screen.blit(logo, (0, 0))
+
+        # Draw timer layer
+        if timer_alpha > 0:
             font = pygame.font.Font(None, int(h * 0.7))
             time_str = party.display.format_time()
-            text = font.render(time_str, True, TIMER_COLOR)
-            rect = text.get_rect(center=(w // 2, h // 2))
-            screen.blit(text, rect)
-        elif party.state == State.SHUFFLE:
-            if logo_original:
-                logo = pygame.transform.scale(logo_original, (w, h))
-                screen.blit(logo, (0, 0))
+            text_surface = font.render(time_str, True, TIMER_COLOR)
+            text_surface.set_alpha(timer_alpha)
+            rect = text_surface.get_rect(center=(w // 2, h // 2))
+            screen.blit(text_surface, rect)
 
         pygame.display.flip()
         clock.tick(30)
