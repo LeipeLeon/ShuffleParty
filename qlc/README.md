@@ -16,18 +16,22 @@ Pre-built QLC+ workspace for Shuffle Partey.
 | **DJ Set**    | ON (255)  | OFF (0)   | Start of DJ set     |
 | **Shuffle**   | OFF (0)   | ON (255)  | Start of shuffle    |
 
-Both scenes have a 1-second fade in/out built into QLC+.
+Both scenes have a 1-second fade in/out built into QLC+. The Python app also crossfades the lighting gradually during transitions.
 
 ## OSC Control
 
-The Python app sends OSC messages to QLC+ on port 7700 (configurable via `QLC_PORT` in `.env`):
+The Python app sends OSC **float** messages (0.0–1.0) to QLC+ on port 7700 (configurable via `QLC_PORT` in `.env`):
 
 | OSC Address | Value | Effect                  |
 |-------------|-------|-------------------------|
-| `/1`        | 255   | Activate DJ Set scene   |
-| `/1`        | 0     | Deactivate DJ Set scene |
-| `/2`        | 255   | Activate Shuffle scene  |
-| `/2`        | 0     | Deactivate Shuffle scene|
+| `/1`        | 1.0   | Activate DJ Set scene   |
+| `/1`        | 0.0   | Deactivate DJ Set scene |
+| `/2`        | 1.0   | Activate Shuffle scene  |
+| `/2`        | 0.0   | Deactivate Shuffle scene|
+
+During crossfades, intermediate float values (e.g. 0.5) are sent every frame for smooth lighting transitions.
+
+**Important:** QLC+ OSC plugin only accepts OSC float (`f`) type values. Integer values are ignored.
 
 ## Setup
 
