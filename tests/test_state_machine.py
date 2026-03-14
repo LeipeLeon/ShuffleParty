@@ -44,10 +44,6 @@ class TestStateMachine:
         self.party.on_timer_expired()
         self.party.mixer.fade_out.assert_called_once()
 
-    def test_transition_to_shuffle_plays_track(self):
-        self.party.on_timer_expired()
-        self.party.track_picker.pick.assert_called_once()
-
     def test_transition_to_shuffle_activates_shuffle_lights(self):
         self.party.on_timer_expired()
         self.party.lighting.activate_shuffle.assert_called_once()
