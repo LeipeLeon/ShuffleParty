@@ -400,8 +400,8 @@ class ControlPanel:
         mid = rect.centery
         half_h = rect.height / 2
 
-        # Current playback position
-        pos_ms = -1
+        # Current playback position (0 when track loaded but not yet playing)
+        pos_ms = 0 if self._track_name else -1
         if pygame.mixer.music.get_busy():
             pos_ms = pygame.mixer.music.get_pos()
         pos_bin = -1
