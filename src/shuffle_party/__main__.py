@@ -29,15 +29,29 @@ TIMER_COLOR = (255, 255, 255)
 CROSSFADE_DURATION = config.CROSSFADE_DURATION_SECONDS
 
 
+def preload_track(party, control) -> None:
+    """Pick the next track, load it into pygame, and show it on the control panel."""
+    track = party.track_picker.pick()
+    party._pending_track = track
+    if track:
+        control.set_track_name(track)
+        try:
+            pygame.mixer.music.load(track)
+            pygame.mixer.music.set_volume(0.0)
+        except Exception as e:
+            print(f"Warning: Could not pre-load {track} — {e}")
+            party._pending_track = None
+
+
 def start_shuffle(party, control) -> None:
-    """Start shuffle transition using the pre-loaded track."""
-    party.on_timer_expired()  # state change + mixer/lighting/display
-    if party._next_track:
+    """Begin the shuffle transition, playing the pre-loaded track."""
+    party.on_timer_expired()
+    if party._pending_track:
         try:
             pygame.mixer.music.play()
         except Exception as e:
-            print(f"Warning: Could not play {party._next_track} — {e}")
-    party._next_track = None
+            print(f"Warning: Could not play {party._pending_track} — {e}")
+    party._pending_track = None
 
 
 def run() -> None:
@@ -56,6 +70,7 @@ def run() -> None:
         logo_original = None
 
     party = ShuffleParty()
+    party._pending_track = None
 
     # Launch control panel in a separate process
     control = ControlPanel(party)
@@ -67,16 +82,7 @@ def run() -> None:
     pygame.time.set_timer(TIMER_TICK, 1000)
 
     # Pre-load the first shuffle track
-    party._next_track = None
-    try:
-        first_track = party.track_picker.pick()
-        if first_track:
-            pygame.mixer.music.load(first_track)
-            pygame.mixer.music.set_volume(0.0)
-            party._next_track = first_track
-            control.set_track_name(first_track)
-    except Exception as e:
-        print(f"Warning: Could not pre-load first track — {e}")
+    preload_track(party, control)
 
     # Initial state: DJ set with timer running
     party.display.start_timer()
@@ -85,7 +91,7 @@ def run() -> None:
 
     # Crossfade state
     prev_state = party.state
-    crossfade_start = 0.0  # timestamp when transition began
+    crossfade_start = 0.0
     crossfading = False
 
     running = True
@@ -104,24 +110,17 @@ def run() -> None:
                         start_shuffle(party, control)
 
             elif event.type == SHUFFLE_TRACK_END:
-                control.set_track_name("")
-                party.on_shuffle_track_ended()
+                if party.state == State.SHUFFLE:
+                    party.on_shuffle_track_ended()
 
-        # Advance mixer crossfade; stop music when fade-in (back to DJ) completes
+        # Advance mixer crossfade
         was_fading = party.mixer.is_fading
         party.mixer.tick()
+
+        # When crossfade back to DJ_SET completes: stop music, preload next
         if was_fading and not party.mixer.is_fading and party.state == State.DJ_SET:
             pygame.mixer.music.stop()
-            # Pre-load the next shuffle track
-            next_track = party.track_picker.pick()
-            if next_track:
-                control.set_track_name(next_track)
-                try:
-                    pygame.mixer.music.load(next_track)
-                    pygame.mixer.music.set_volume(0.0)
-                except Exception as e:
-                    print(f"Warning: Could not pre-load {next_track} — {e}")
-                party._next_track = next_track
+            preload_track(party, control)
 
         # Sync shared state with control panel
         control.update()
@@ -129,12 +128,11 @@ def run() -> None:
         # Handle fade out now button
         if control.should_fade_out_now():
             if party.state == State.SHUFFLE:
-                control.set_track_name("")
                 party.on_shuffle_track_ended()
             elif party.state == State.DJ_SET:
                 start_shuffle(party, control)
 
-        # Detect state change and start crossfade
+        # Detect state change and start visual crossfade
         if party.state != prev_state:
             crossfade_start = time.monotonic()
             crossfading = True
