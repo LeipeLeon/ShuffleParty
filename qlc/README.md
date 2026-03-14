@@ -6,8 +6,8 @@ Pre-built QLC+ workspace for Shuffle Partey.
 
 | DMX Channel | Fixture      | Purpose                          |
 |-------------|-------------|----------------------------------|
-| 1–4         | FX Light 1–4 | Music-reactive par cans (DJ set) |
-| 5–6         | Pin Spot 1–2 | Mirrorball spots (shuffle)       |
+| 1–2         | Pin Spot 1–2 | Mirrorball spots (shuffle)       |
+| 3–6         | FX Light 1–4 | Music-reactive par cans (DJ set) |
 
 ## Scenes
 
