@@ -390,8 +390,20 @@ class ControlPanel:
             t_text = self._font_med.render(time_label, True, TEXT)
             surf.blit(t_text, (100, y + 20))
 
+        # Cue point times
+        cue_parts = []
+        if self._fadein_cue_ms > 0:
+            s = self._fadein_cue_ms // 1000
+            cue_parts.append(f"In: {s // 60}:{s % 60:02d}")
+        if self._fadeout_cue_ms >= 0:
+            s = self._fadeout_cue_ms // 1000
+            cue_parts.append(f"Out: {s // 60}:{s % 60:02d}")
+        if cue_parts:
+            cue_text = self._font_small.render("  ".join(cue_parts), True, TEXT_DIM)
+            surf.blit(cue_text, (100, y + 38))
+
         # Pause/play button (SHUFFLE only) and Skip button (DJ_SET only)
-        btn_y = y + 42
+        btn_y = y + 54
         self._pause_btn_rect = pygame.Rect(100, btn_y, 24, 24)
         self._skip_btn_rect = pygame.Rect(100, btn_y, 80, 24)
         if self._track_name and state == State.SHUFFLE:
