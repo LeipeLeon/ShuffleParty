@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 # Layout constants
 WIDTH = 1280
 HEIGHT = 720
-WAVEFORM_BINS = 200
+WAVEFORM_BINS = 600
 
 # Colors
 BG = (26, 26, 46)
