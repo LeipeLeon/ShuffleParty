@@ -100,6 +100,7 @@ class ControlPanel:
         self._waveform_rect = pygame.Rect(0, 0, 0, 0)
         self._pause_btn_rect = pygame.Rect(0, 0, 0, 0)
         self._skip_btn_rect = pygame.Rect(0, 0, 0, 0)
+        self._hw_btn_rects: dict[str, pygame.Rect] = {}
         self._paused = False
 
     def _make_placeholder(self) -> pygame.Surface:
@@ -295,6 +296,22 @@ class ControlPanel:
                     self._seek_target_ms = seek_ms
                     pygame.mixer.music.set_pos(seek_ms / 1000.0)
                 return
+            # Virtual reTerminal buttons
+            for action, rect in self._hw_btn_rects.items():
+                if rect.collidepoint(x, y):
+                    if action == "volume_down":
+                        self.nudge_volume(-0.05)
+                    elif action == "volume_up":
+                        self.nudge_volume(0.05)
+                    elif action == "skip_track":
+                        if self.party.state == State.DJ_SET and not self.crossfading:
+                            self._skip_track = True
+                    elif action == "crossfade":
+                        if self.party.state == State.DJ_SET:
+                            self._fade_out_now = True
+                        elif self.party.state == State.IDLE:
+                            self._start_dj = True
+                    return
 
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             self._dragging = None
@@ -475,6 +492,49 @@ class ControlPanel:
         master_cx = 12 + spacing // 2
         self._vol_slider_rect = pygame.Rect(master_cx - 12, y, 24, fader_h)
         y += fader_h + 8
+
+        # -- Virtual reTerminal buttons (pinned to bottom) --
+        h = surf.get_height()
+        btn_h = 48
+        btn_y = h - btn_h - 12
+        margin = 12
+        gap = 10
+        # Three rectangular F-buttons + one circular O button
+        f_btn_w = (w - 2 * margin - 3 * gap - btn_h) // 3  # remaining space for 3 F-buttons
+        hw_buttons = [
+            ("F1", "Vol −", "volume_down"),
+            ("F2", "Vol +", "volume_up"),
+            ("F3", "Skip", "skip_track"),
+        ]
+        bx = margin
+        self._hw_btn_rects = {}
+        for key, label, action in hw_buttons:
+            rect = pygame.Rect(bx, btn_y, f_btn_w, btn_h)
+            self._hw_btn_rects[action] = rect
+            pygame.draw.rect(surf, BTN_COLOR, rect, border_radius=6)
+            pygame.draw.rect(surf, SLIDER_TRACK, rect, width=1, border_radius=6)
+            key_text = self._font_small.render(key, True, TEXT_DIM)
+            surf.blit(key_text, (rect.centerx - key_text.get_width() // 2, rect.y + 8))
+            label_text = self._font_med.render(label, True, TEXT)
+            surf.blit(label_text, (rect.centerx - label_text.get_width() // 2, rect.y + 24))
+            bx += f_btn_w + gap
+
+        # Circular O button
+        o_radius = btn_h // 2
+        o_cx = bx + o_radius
+        o_cy = btn_y + o_radius
+        o_rect = pygame.Rect(o_cx - o_radius, o_cy - o_radius, btn_h, btn_h)
+        self._hw_btn_rects["crossfade"] = o_rect
+        pygame.draw.circle(surf, BTN_COLOR, (o_cx, o_cy), o_radius)
+        pygame.draw.circle(surf, SLIDER_TRACK, (o_cx, o_cy), o_radius, width=1)
+        o_label = self._font_small.render("O", True, TEXT_DIM)
+        surf.blit(o_label, (o_cx - o_label.get_width() // 2, o_cy - 12))
+        if state == State.IDLE:
+            o_action_text = "Start"
+        else:
+            o_action_text = "Fade"
+        o_text = self._font_med.render(o_action_text, True, TEXT)
+        surf.blit(o_text, (o_cx - o_text.get_width() // 2, o_cy + 2))
 
         self.window.flip()
 
