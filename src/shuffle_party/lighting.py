@@ -1,33 +1,50 @@
-"""QLC+ lighting control via OSC.
+"""DMX lighting control via OLA (Open Lighting Architecture).
 
-Triggers pre-built QLC+ scenes for DJ Set and Shuffle states.
+Sends DMX values to two channels — one for DJ FX lights, one for
+mirrorball pin spots — through the OLA daemon running on the Pi.
+Falls back gracefully if OLA is not installed or olad is not running.
+
+Install on Raspberry Pi:
+    sudo apt install ola ola-python
 """
 
+import array
 import logging
-
-from pythonosc.udp_client import SimpleUDPClient
 
 logger = logging.getLogger(__name__)
 
 
 class Lighting:
-    """Sends OSC triggers to QLC+ to switch between lighting scenes."""
+    """Controls DJ FX and pin spot lighting via OLA DMX."""
 
-    def __init__(self, host: str, port: int) -> None:
-        self.host = host
-        self.port = port
+    def __init__(
+        self,
+        universe: int = 1,
+        dj_channel: int = 1,
+        shuffle_channel: int = 2,
+    ) -> None:
+        self.universe = universe
+        self.dj_channel = dj_channel
+        self.shuffle_channel = shuffle_channel
         self._client = None
         self._target_dj = 1.0
         self._target_shuffle = 0.0
         self._connect()
 
     def _connect(self) -> None:
-        """Attempt to connect to QLC+ OSC. Warn and continue if unreachable."""
         try:
-            self._client = SimpleUDPClient(self.host, self.port)
+            from ola.ClientWrapper import ClientWrapper
+
+            self._wrapper = ClientWrapper()
+            self._client = self._wrapper.Client()
+            logger.info("OLA connected (universe %d, DJ ch%d, shuffle ch%d)",
+                        self.universe, self.dj_channel, self.shuffle_channel)
+        except ImportError:
+            logger.warning("ola-python not installed — lighting disabled. "
+                           "Install with: sudo apt install ola ola-python")
         except Exception as e:
-            logger.warning(f"QLC+ unreachable at {self.host}:{self.port} — {e!r}")
-            logger.warning("Continuing without lighting control.")
+            logger.warning(f"Could not connect to OLA daemon — {e!r}")
+            logger.warning("Is olad running? Start with: sudo systemctl start olad")
 
     def activate_dj_set(self) -> None:
         """Start crossfade to DJ Set lighting (FX on, pin spots off)."""
@@ -56,9 +73,14 @@ class Lighting:
         self._send(dj_val, shuffle_val)
 
     def _send(self, dj_val: float, shuffle_val: float) -> None:
-        """Send OSC float values (0.0–1.0) to QLC+."""
+        """Send DMX values (converted from 0.0–1.0 to 0–255) via OLA."""
         if self._client is None:
             return
-        logger.debug("Lighting OSC: /1=%.3f, /2=%.3f", dj_val, shuffle_val)
-        self._client.send_message("/1", float(dj_val))
-        self._client.send_message("/2", float(shuffle_val))
+        max_ch = max(self.dj_channel, self.shuffle_channel)
+        data = array.array("B", [0] * max_ch)
+        data[self.dj_channel - 1] = int(dj_val * 255)
+        data[self.shuffle_channel - 1] = int(shuffle_val * 255)
+        logger.debug("DMX: ch%d=%d, ch%d=%d",
+                     self.dj_channel, data[self.dj_channel - 1],
+                     self.shuffle_channel, data[self.shuffle_channel - 1])
+        self._client.SendDmx(self.universe, data)

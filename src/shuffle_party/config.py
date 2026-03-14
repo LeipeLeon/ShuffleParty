@@ -19,9 +19,10 @@ DJ_CHANNEL_R = int(os.environ.get("DJ_CHANNEL_R", 4))
 SHUFFLE_CHANNEL_L = int(os.environ.get("SHUFFLE_CHANNEL_L", 1))
 SHUFFLE_CHANNEL_R = int(os.environ.get("SHUFFLE_CHANNEL_R", 2))
 
-# QLC+ lighting (OSC)
-QLC_HOST = os.environ.get("QLC_HOST", "127.0.0.1")
-QLC_PORT = int(os.environ.get("QLC_PORT", 7700))
+# OLA DMX lighting
+DMX_UNIVERSE = int(os.environ.get("DMX_UNIVERSE", 1))
+DMX_DJ_CHANNEL = int(os.environ.get("DMX_DJ_CHANNEL", 1))
+DMX_SHUFFLE_CHANNEL = int(os.environ.get("DMX_SHUFFLE_CHANNEL", 2))
 
 # reTerminal buttons (evdev)
 BUTTON_DEVICE = os.environ.get("BUTTON_DEVICE", "/dev/input/event0")
