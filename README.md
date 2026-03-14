@@ -10,27 +10,84 @@ A DJ rotation party where each DJ gets a fixed time slot (e.g. 20 minutes). When
 
 ## The Experience
 
-**During a DJ set:** The audience sees a countdown timer on screen. The DJ plays their set. Lighting effects respond to the music. The mirrorball pin spots are off.
+**Startup:** The system starts in idle mode, displaying the Shuffle logo. An operator clicks "Start DJ Set" in the control panel (or presses Cmd+F) to begin.
 
-**When time runs out (the "Shuffle" moment):** The DJ's audio fades out automatically. A random shuffle track from the playlist starts playing. The screen switches from the timer to the Shuffle logo. Lighting shifts — music-reactive effects go dark, mirrorball pin spots come on. This is the moment the next DJ takes position.
+**During a DJ set:** The audience sees a countdown timer on screen. The DJ plays their set. Lighting effects respond to the music. The mirrorball pin spots are off. The next shuffle track is pre-loaded and visible in the control panel.
 
-**When the shuffle track ends:** The shuffle track audio fades out. The DJ's audio channel opens back up. The timer resets and starts counting down again. Lighting returns to music-reactive mode. The next DJ is live.
+**When time runs out (the "Shuffle" moment):** The DJ's audio fades out automatically via the mixer crossfade. A random shuffle track starts playing (skipping to its fade-in cue if set). The screen crossfades from the timer to the Shuffle logo. Lighting shifts — music-reactive effects go dark, mirrorball pin spots come on. This is the moment the next DJ takes position.
+
+**When the shuffle track ends (or its fadeout cue is reached):** The shuffle track audio fades out. The DJ's audio channel opens back up. The timer resets after the crossfade completes and starts counting down again. Lighting returns to music-reactive mode. The next DJ is live.
 
 ## The State Machine
 
 ```mermaid
 flowchart LR
-   DJ_Set -- "timer hits 00:00" --> Shuffle_Transition -- "track ends or cue point reached" --> DJ_Set
+   Idle -- "Start DJ Set" --> DJ_Set
+   DJ_Set -- "timer hits 00:00" --> Shuffle_Transition -- "track ends or fadeout cue reached" --> DJ_Set
 ```
 
-The system has two states:
+The system has three states:
 
-| | **DJ Set** | **Shuffle Transition** |
-|---|---|---|
-| **Audio** | DJ channel open, shuffle track muted | DJ channel faded out, shuffle track playing |
-| **Screen** | Countdown timer | Shuffle logo |
-| **Lighting** | Music-reactive FX on, pin spots off | FX off, mirrorball pin spots on |
-| **Trigger to exit** | Timer reaches `00:00` | Shuffle track ends (or playhead[^playhead] passes a cue point[^cuepoint]) |
+| | **Idle** | **DJ Set** | **Shuffle Transition** |
+|---|---|---|---|
+| **Audio** | Silent | DJ channel open, shuffle muted | DJ faded out, shuffle playing |
+| **Screen** | Shuffle logo | Countdown timer | Shuffle logo |
+| **Lighting** | Off | Music-reactive FX on, pin spots off | FX off, pin spots on |
+| **Trigger to exit** | "Start DJ Set" button / Cmd+F | Timer reaches `00:00` or "End DJ Set Now" | Track ends or fadeout cue reached |
+
+## Control Panel
+
+A second pygame window provides real-time controls:
+
+- **Status bar** — current state (IDLE / DJ SET / SHUFFLE) and countdown timer
+- **Start / Fade button** — starts the DJ set from idle, or triggers early fadeout
+- **Set Duration slider** — adjust DJ set length (30s–20min, in 30s steps)
+- **Track info** — cover art, artist/title, time remaining, fade-in/out cue times
+- **Waveform** — visual waveform with playhead, fade-in (green) and fade-out (orange) cue markers. Click to seek.
+- **Pause/Play** — pause the shuffle track (only during shuffle)
+- **Skip Track** — load a different random track (only during DJ set)
+- **Vertical faders** — master volume (draggable) + DJ L/R and Shuffle L/R channel levels
+
+**Keyboard shortcut:** Cmd+F triggers the same action as the main button from either window.
+
+## Fade Cue Points
+
+Tracks can have ID3 tags that control playback boundaries:
+
+- **`TXXX:FADEIN_MS`** — skip the intro, start playback here
+- **`TXXX:FADEOUT_MS`** — trigger automatic fadeout at this position instead of waiting for track end
+
+### Auto-detection
+
+The `scripts/auto_fadeout.py` script analyzes audio levels to detect fade points automatically:
+
+```bash
+# Preview detection without writing tags
+uv run python scripts/auto_fadeout.py tracks/*.mp3 --dry-run
+
+# Write tags and generate verification images
+uv run python scripts/auto_fadeout.py tracks/*.mp3
+
+# Adjust sensitivity (higher = earlier cue, default 6 dB)
+uv run python scripts/auto_fadeout.py tracks/*.mp3 --drop 10
+```
+
+Preview images are saved to `fadeout_preview/` with green (fade-in) and orange (fade-out) markers.
+
+### Manual editing
+
+```bash
+# Show current cues
+uv run python scripts/set_fadeout.py tracks/song.mp3
+
+# Set fadeout at 3:30
+uv run python scripts/set_fadeout.py tracks/song.mp3 3:30
+
+# Remove fadeout cue
+uv run python scripts/set_fadeout.py tracks/song.mp3 --remove
+```
+
+Or use [Kid3](https://kid3.kde.org/) to edit `TXXX:FADEIN_MS` / `TXXX:FADEOUT_MS` tags directly.
 
 ## Signal Routing
 
@@ -38,39 +95,15 @@ The system has two states:
 
 The system coordinates four output channels, driven by two state signals (`TIMER_STATE` and `TRACK_STATE`) and two pulse events (`TIMER_DONE` and `TRACK_DONE`):
 
-- **Audio — DJ channel:** Controlled via OSC or MIDI on a digital mixer (e.g. Behringer XR12). The XR12 supports both MIDI CC and OSC over WiFi/Ethernet (UDP port 10023). OSC is preferred — no USB MIDI interface needed, just a network connection.
-- **Audio — Shuffle track:** An MP3 player (software or hardware) routed to a separate mixer channel. A random track is selected from the playlist and triggered by `TIMER_DONE`. Also faded via OSC/MIDI.
+- **Audio — DJ channel:** Controlled via OSC on a digital mixer (e.g. Behringer XR12). OSC over WiFi/Ethernet (UDP port 10023) — no USB MIDI interface needed.
+- **Audio — Shuffle track:** pygame.mixer plays an MP3 routed to a separate mixer channel. A random track is selected and pre-loaded during the DJ set, triggered by timer expiry.
 - **DMX — FX lights:** Music-reactive lighting. On during DJ set, off during shuffle. Controlled by [QLC+](https://www.qlcplus.org/), triggered via OSC from the Python process.
 - **DMX — Pin spots:** Mirrorball spots. Off during DJ set, on during shuffle. Also driven by QLC+ scenes.
 - **Screen:** A display/beamer showing either the countdown timer or the shuffle logo.
 
 ![](doc/shuffle-setup.png)
 
-## Implementation Options
-
-### Recommended: Python on Raspberry Pi
-
-A single Python process running on a Raspberry Pi covers all requirements:
-
-| Capability | Library | Notes |
-|---|---|---|
-| **Audio playback** | `pygame.mixer` | MP3 playback, fade control, track-end detection |
-| **Mixer control** | [`xair-api`](https://pypi.org/project/xair-api/) | Controls XR12 faders directly via OSC/WiFi — no MIDI hardware needed |
-| **DMX** | [QLC+](https://www.qlcplus.org/) | Lighting control companion app, triggered via OSC from Python |
-| **Screen output** | `pygame` fullscreen | Countdown timer + shuffle logo |
-| **State machine** | Plain Python | Two states, four outputs, ~100 lines |
-
-### Setup
-
-The control panel requires tkinter, which is a system package:
-
-```bash
-# macOS (Homebrew)
-brew install python-tk@3.14
-
-# Debian/Raspberry Pi
-sudo apt install python3-tk
-```
+## Setup
 
 Install [uv](https://docs.astral.sh/uv/) and set up the project:
 
@@ -85,7 +118,7 @@ Run with:
 uv run python -m shuffle_party
 ```
 
-Or just use the startup script (handles deps automatically):
+Or use the startup script:
 
 ```bash
 ./start.sh
@@ -93,7 +126,7 @@ Or just use the startup script (handles deps automatically):
 
 Put your shuffle transition MP3s in `./tracks/` before starting.
 
-### Development Commands
+## Development Commands
 
 | Task | Command |
 |---|---|
@@ -106,35 +139,32 @@ Put your shuffle transition MP3s in `./tracks/` before starting.
 | Add dependency | `uv add package-name` |
 | Add dev dependency | `uv add --group dev package-name` |
 
-### Project Structure
+## Project Structure
 
 ```
 ShuffleParty/
   ├── src/
   │   └── shuffle_party/
   │       ├── __init__.py
-  │       ├── __main__.py        (pygame event loop + rendering)
-  │       ├── app.py              (state machine)
+  │       ├── __main__.py        (pygame dual-window event loop + display rendering)
+  │       ├── app.py              (state machine: IDLE → DJ_SET ↔ SHUFFLE)
   │       ├── config.py           (settings with .env overrides)
-  │       ├── control_panel.py    (tkinter control window, separate process)
+  │       ├── control_panel.py    (pygame control window: buttons, sliders, waveform)
   │       ├── mixer.py            (XR12 OSC crossfade)
   │       ├── lighting.py         (QLC+ OSC scenes)
   │       ├── display.py          (countdown timer logic)
   │       └── track_picker.py     (random MP3 selection)
+  ├── scripts/
+  │   ├── auto_fadeout.py         (detect fade-in/out cues, write tags, generate previews)
+  │   └── set_fadeout.py          (CLI tool to set/show/remove FADEOUT_MS tags)
   ├── tests/
-  │   ├── test_state_machine.py
-  │   ├── test_mixer.py
-  │   ├── test_lighting.py
-  │   ├── test_display.py
-  │   ├── test_track_picker.py
-  │   └── test_controls.py
-  ├── .env.example
+  ├── tracks/                     (shuffle transition MP3s)
   ├── pyproject.toml
   ├── start.sh
   └── README.md
 ```
 
-### Alternatives
+## Alternatives
 
 | | Python | Node.js + Chromium | openFrameworks | TouchDesigner | DragonRuby |
 |---|---|---|---|---|---|
@@ -146,7 +176,7 @@ ShuffleParty/
 | **Complexity** | Low | Medium | High | Low | Medium |
 | **Best for** | This project | Polished screen output | Future visual upgrades | Quick prototyping | Embedded Ruby |
 
-**Python wins** because [`xair-api`](https://pypi.org/project/xair-api/) gives direct fader control over the XR12 via WiFi, [QLC+](https://www.qlcplus.org/) handles all DMX fixture management and light show design (triggered via OSC), and `pygame` handles both audio and display.
+**Python wins** because [`xair-api`](https://pypi.org/project/xair-api/) gives direct fader control over the XR12 via WiFi, [QLC+](https://www.qlcplus.org/) handles all DMX fixture management and light show design (triggered via OSC), and `pygame` handles audio, display, and the control panel in a single process.
 
 [^cuepoint]: A defined position marker that belongs to a track, like the hot cues on a Pioneer CDJ.
 [^playhead]: The current playback position in the audio player
