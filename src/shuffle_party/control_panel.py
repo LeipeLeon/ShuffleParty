@@ -577,11 +577,11 @@ class ControlPanel:
     def _get_time_label(self) -> str:
         if not self._track_name:
             return ""
-        dur = self._duration_ms
+        end_ms = self._fadeout_cue_ms if self._fadeout_cue_ms >= 0 else self._duration_ms
         pos = self._playback_pos_ms()
-        if pos >= 0 and dur > 0:
-            rem_s = max(0, (dur - pos) / 1000)
+        if pos >= 0 and end_ms > 0:
+            rem_s = max(0, (end_ms - pos) / 1000)
             return f"-{int(rem_s) // 60:02d}:{int(rem_s) % 60:02d}"
-        if dur > 0:
-            return f"Ready — {dur // 60000:02d}:{(dur // 1000) % 60:02d}"
+        if end_ms > 0:
+            return f"Ready — {end_ms // 60000:02d}:{(end_ms // 1000) % 60:02d}"
         return "Ready"
