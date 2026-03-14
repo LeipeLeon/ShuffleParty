@@ -14,6 +14,7 @@ from shuffle_party.track_picker import TrackPicker
 
 
 class State(Enum):
+    IDLE = auto()
     DJ_SET = auto()
     SHUFFLE = auto()
 
@@ -22,7 +23,7 @@ class ShuffleParty:
     """Main controller: a two-state machine coordinating audio, lights, and display."""
 
     def __init__(self) -> None:
-        self.state = State.DJ_SET
+        self.state = State.IDLE
         self.mixer = Mixer(
             host=config.XR12_HOST,
             port=config.XR12_PORT,
@@ -37,6 +38,15 @@ class ShuffleParty:
         self.display = Display(set_duration=config.SET_DURATION_SECONDS)
         self.track_picker = TrackPicker(config.TRACKS_DIR)
         self.pending_track: str | None = None
+
+    def start_dj_set(self) -> None:
+        """Transition from IDLE to DJ_SET."""
+        if self.state != State.IDLE:
+            return
+        self.state = State.DJ_SET
+        self.mixer.fade_in()
+        self.lighting.activate_dj_set()
+        self.display.start_timer()
 
     def on_timer_expired(self) -> None:
         """Called when the DJ set countdown reaches 00:00."""

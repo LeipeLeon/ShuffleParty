@@ -23,7 +23,7 @@ class SharedState:
         self, set_duration: int, dj_channels: list[int], shuffle_channels: list[int],
     ) -> None:
         # Read by control panel (updated by main process)
-        self.state = mp.Value("i", 0)  # 0 = DJ_SET, 1 = SHUFFLE
+        self.state = mp.Value("i", 2)  # 0 = DJ_SET, 1 = SHUFFLE, 2 = IDLE
         self.remaining_seconds = mp.Value("i", set_duration)
         self.mp3_pos_ms = mp.Value("i", -1)  # -1 = not playing
         self.mp3_duration_ms = mp.Value("i", 0)  # total track length
@@ -41,6 +41,7 @@ class SharedState:
         self.master_volume = mp.Value("d", 1.0)
         self.volume_changed = mp.Value("i", 0)  # flag
         self.fade_out_now = mp.Value("i", 0)  # flag
+        self.start_dj = mp.Value("i", 0)  # flag
 
         # Fader levels (updated every frame from mixer)
         self.dj_level = mp.Value("d", 1.0)
@@ -77,13 +78,25 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
     remaining_var = tk.StringVar(value="--:--")
     ttk.Label(frame_status, textvariable=remaining_var, style="Big.TLabel").pack(side="right")
 
-    # -- Fade out now button --
+    # -- Start DJ / Fade out button --
+    def on_start_dj():
+        shared.start_dj.value = 1
+
+    # Button frame holds either start or fade button
+    btn_frame = ttk.Frame(root)
+    btn_frame.pack(fill="x", **pad)
+
+    start_btn = ttk.Button(btn_frame, text="Start DJ Set", command=on_start_dj)
+    start_btn.pack(fill="x")
+
     def on_fade_out_now():
         shared.fade_out_now.value = 1
 
     fade_btn_var = tk.StringVar(value="Fade Out Now")
-    fade_btn = ttk.Button(root, textvariable=fade_btn_var, command=on_fade_out_now)
-    fade_btn.pack(fill="x", **pad)
+    fade_btn = ttk.Button(btn_frame, textvariable=fade_btn_var, command=on_fade_out_now)
+    # fade_btn starts hidden (IDLE state)
+
+    prev_idle = [True]
 
     # -- Set duration control --
     frame_duration = ttk.LabelFrame(root, text="Set Duration", padding=10)
@@ -219,10 +232,23 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
 
     def poll():
         # State
-        is_shuffle = shared.state.value == 1
-        state_name = "SHUFFLE" if is_shuffle else "DJ SET"
+        state_val = shared.state.value
+        is_idle = state_val == 2
+        is_shuffle = state_val == 1
+        state_name = "IDLE" if is_idle else ("SHUFFLE" if is_shuffle else "DJ SET")
         state_var.set(state_name)
-        fade_btn_var.set("Fade Track Out Now" if is_shuffle else "End DJ Set Now")
+
+        # Toggle start/fade button only on state change
+        if is_idle != prev_idle[0]:
+            prev_idle[0] = is_idle
+            if is_idle:
+                fade_btn.pack_forget()
+                start_btn.pack(fill="x")
+            else:
+                start_btn.pack_forget()
+                fade_btn.pack(fill="x")
+        if not is_idle:
+            fade_btn_var.set("Fade Track Out Now" if is_shuffle else "End DJ Set Now")
 
         # Remaining time
         rem = shared.remaining_seconds.value
@@ -365,6 +391,7 @@ class ControlPanel:
         )
         self._process.start()
         self._fade_out_now = False
+        self._start_dj = False
         self._fadeout_cue_triggered = False
 
     def update(self) -> None:
@@ -372,7 +399,8 @@ class ControlPanel:
         from shuffle_party.app import State
 
         # Push state to control panel
-        self.shared.state.value = 1 if self.party.state == State.SHUFFLE else 0
+        state_map = {State.DJ_SET: 0, State.SHUFFLE: 1, State.IDLE: 2}
+        self.shared.state.value = state_map[self.party.state]
         self.shared.remaining_seconds.value = self.party.display.remaining_seconds
         self.shared.dj_level.value = self.party.mixer.dj_level
         self.shared.shuffle_level.value = self.party.mixer.shuffle_level
@@ -399,6 +427,11 @@ class ControlPanel:
             self.shared.duration_changed.value = 0
             self.party.display.change_duration(self.shared.new_duration.value)
 
+        # Pull start DJ from control panel
+        if self.shared.start_dj.value:
+            self.shared.start_dj.value = 0
+            self._start_dj = True
+
         # Pull fade out now from control panel
         if self.shared.fade_out_now.value:
             self.shared.fade_out_now.value = 0
@@ -408,6 +441,13 @@ class ControlPanel:
         if self.shared.volume_changed.value:
             self.shared.volume_changed.value = 0
             self.party.mixer.set_master_volume(self.shared.master_volume.value)
+
+    def should_start_dj(self) -> bool:
+        """Check and clear the start-DJ flag."""
+        if self._start_dj:
+            self._start_dj = False
+            return True
+        return False
 
     def should_fade_out_now(self) -> bool:
         """Check and clear the fade-out-now flag."""

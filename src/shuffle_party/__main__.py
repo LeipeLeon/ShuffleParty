@@ -84,10 +84,7 @@ def run() -> None:
     # Pre-load the first shuffle track
     preload_track(party, control)
 
-    # Initial state: DJ set with timer running
-    party.display.start_timer()
-    party.lighting.activate_dj_set()
-    party.mixer.fade_in()
+    # Start in IDLE — show logo, wait for "Start DJ Set" button
 
     # Crossfade state
     prev_state = party.state
@@ -124,6 +121,10 @@ def run() -> None:
 
         # Sync shared state with control panel
         control.update()
+
+        # Handle start DJ button (IDLE -> DJ_SET)
+        if control.should_start_dj() and party.state == State.IDLE:
+            party.start_dj_set()
 
         # Handle fade out now button
         if control.should_fade_out_now():
@@ -163,7 +164,10 @@ def run() -> None:
         w, h = screen.get_size()
 
         # Determine alpha for each layer
-        if party.state == State.SHUFFLE:
+        if party.state == State.IDLE:
+            timer_alpha = 0
+            logo_alpha = 255
+        elif party.state == State.SHUFFLE:
             timer_alpha = int(255 * (1.0 - fade_t))
             logo_alpha = int(255 * fade_t)
         else:
