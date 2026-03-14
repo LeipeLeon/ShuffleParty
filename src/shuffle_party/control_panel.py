@@ -229,7 +229,7 @@ class ControlPanel:
                 return
             if self._vol_slider_rect.collidepoint(x, y):
                 self._dragging = "volume"
-                self._update_slider("volume", x, self._vol_slider_rect)
+                self._update_volume_slider(y)
                 return
 
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
@@ -241,7 +241,14 @@ class ControlPanel:
             if self._dragging == "duration":
                 self._update_slider("duration", x, self._dur_slider_rect)
             elif self._dragging == "volume":
-                self._update_slider("volume", x, self._vol_slider_rect)
+                self._update_volume_slider(y)
+
+    def _update_volume_slider(self, mouse_y: int) -> None:
+        rect = self._vol_slider_rect
+        # Invert: top of rect = 1.0, bottom = 0.0
+        t = 1.0 - max(0.0, min(1.0, (mouse_y - rect.y) / rect.height))
+        self._volume_value = round(t, 2)
+        self.party.mixer.set_master_volume(self._volume_value)
 
     def _update_slider(self, name: str, mouse_x: int, rect: pygame.Rect) -> None:
         t = max(0.0, min(1.0, (mouse_x - rect.x) / rect.width))
@@ -342,29 +349,26 @@ class ControlPanel:
             self._draw_waveform(surf, wf_rect)
         y += 68
 
-        # -- Volume slider --
-        self._draw_section_label(surf, "Master Volume", y)
+        # -- Faders (vertical: master volume + channel levels) --
+        self._draw_section_label(surf, "Levels", y)
         y += 18
-        self._vol_slider_rect = pygame.Rect(50, y, WIDTH - 100, 16)
-        vol_rect = self._vol_slider_rect
-        self._draw_slider(surf, vol_rect, self._volume_value, "0%", "100%")
-        y += 20
-        vol_text = self._font_small.render(f"{int(self._volume_value * 100)}%", True, TEXT_DIM)
-        surf.blit(vol_text, (WIDTH // 2 - vol_text.get_width() // 2, y))
-        y += 24
-
-        # -- Channel levels --
-        self._draw_section_label(surf, "Channel Levels", y)
-        y += 20
-        channels = [
-            ("DJ L", self.party.mixer.dj_channels[0], self.party.mixer.dj_level),
-            ("DJ R", self.party.mixer.dj_channels[1], self.party.mixer.dj_level),
-            ("Shuffle L", self.party.mixer.shuffle_channels[0], self.party.mixer.shuffle_level),
-            ("Shuffle R", self.party.mixer.shuffle_channels[1], self.party.mixer.shuffle_level),
+        fader_h = 140
+        faders = [
+            ("Master", self._volume_value, True),
+            (f"DJ L", self.party.mixer.dj_level, False),
+            (f"DJ R", self.party.mixer.dj_level, False),
+            (f"Sh L", self.party.mixer.shuffle_level, False),
+            (f"Sh R", self.party.mixer.shuffle_level, False),
         ]
-        for label, ch, level in channels:
-            self._draw_level_bar(surf, y, f"{label} (ch {ch})", level)
-            y += 22
+        n_faders = len(faders)
+        spacing = (WIDTH - 24) // n_faders
+        for i, (label, level, is_master) in enumerate(faders):
+            cx = 12 + i * spacing + spacing // 2
+            self._draw_vertical_fader(surf, cx, y, fader_h, label, level, is_master)
+        # Store volume slider rect for hit testing (the master fader)
+        master_cx = 12 + spacing // 2
+        self._vol_slider_rect = pygame.Rect(master_cx - 12, y, 24, fader_h)
+        y += fader_h + 8
 
         self.window.flip()
 
@@ -427,19 +431,39 @@ class ControlPanel:
             px = rect.x + int((pos_ms / self._duration_ms) * rect.width)
             pygame.draw.line(surf, PLAYHEAD_COLOR, (px, rect.y), (px, rect.bottom), 2)
 
-    def _draw_level_bar(
-        self, surf: pygame.Surface, y: int, label: str, level: float,
+    def _draw_vertical_fader(
+        self, surf: pygame.Surface, cx: int, y: int, h: int,
+        label: str, level: float, is_master: bool,
     ) -> None:
-        l_text = self._font_small.render(label, True, TEXT_DIM)
-        surf.blit(l_text, (12, y + 1))
-        bar_x = 140
-        bar_w = WIDTH - bar_x - 12
-        bar_rect = pygame.Rect(bar_x, y + 2, bar_w, 14)
-        pygame.draw.rect(surf, BAR_BG, bar_rect, border_radius=2)
-        fill_w = int(bar_w * level)
-        if fill_w > 0:
-            fill_rect = pygame.Rect(bar_x, y + 2, fill_w, 14)
-            pygame.draw.rect(surf, GREEN, fill_rect, border_radius=2)
+        track_w = 8
+        track_x = cx - track_w // 2
+        label_y = y + h + 4
+
+        # Track background
+        track_rect = pygame.Rect(track_x, y + 16, track_w, h - 32)
+        pygame.draw.rect(surf, SLIDER_TRACK, track_rect, border_radius=3)
+
+        # Fill from bottom
+        fill_h = int(track_rect.height * level)
+        if fill_h > 0:
+            fill_color = ACCENT if is_master else GREEN
+            fill_rect = pygame.Rect(
+                track_rect.x, track_rect.bottom - fill_h, track_w, fill_h,
+            )
+            pygame.draw.rect(surf, fill_color, fill_rect, border_radius=3)
+
+        # Handle (only for master)
+        if is_master:
+            hy = track_rect.bottom - fill_h
+            pygame.draw.circle(surf, TEXT, (cx, hy), 7)
+
+        # Value label on top
+        val_text = self._font_small.render(f"{int(level * 100)}%", True, TEXT_DIM)
+        surf.blit(val_text, (cx - val_text.get_width() // 2, y))
+
+        # Name label on bottom
+        name_text = self._font_small.render(label, True, TEXT_DIM)
+        surf.blit(name_text, (cx - name_text.get_width() // 2, label_y))
 
     def _get_time_label(self) -> str:
         if not self._track_name:
