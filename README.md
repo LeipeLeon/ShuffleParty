@@ -50,6 +50,37 @@ A second pygame window provides real-time controls:
 
 **Keyboard shortcut:** Cmd+F triggers the same action as the main button from either window.
 
+## reTerminal Buttons
+
+On a Seeed Studio reTerminal, the front-panel buttons are mapped as hardware controls:
+
+| Button | Action |
+|---|---|
+| **F1** | Master volume down (−5%) |
+| **F2** | Master volume up (+5%) |
+| **F3** | Skip track (during DJ set) |
+| **O** (circular) | Start DJ set (from idle) or initiate crossfade (during DJ set) |
+
+### Finding the correct input device
+
+The buttons appear as a Linux input device. To identify which one:
+
+```bash
+# List all input devices
+cat /proc/bus/input/devices
+
+# Interactively test — press buttons and watch for events
+sudo evtest
+```
+
+Set the device path in your `.env` if it's not the default `/dev/input/event0`:
+
+```bash
+BUTTON_DEVICE=/dev/input/event3
+```
+
+If the "O" button maps to a different key code than `KEY_ENTER` (28), update `_KEY_O` in `src/shuffle_party/buttons.py`.
+
 ## Fade Cue Points
 
 Tracks can have ID3 tags that control playback boundaries:
@@ -148,6 +179,7 @@ ShuffleParty/
   │       ├── __init__.py
   │       ├── __main__.py        (pygame dual-window event loop + display rendering)
   │       ├── app.py              (state machine: IDLE → DJ_SET ↔ SHUFFLE)
+  │       ├── buttons.py           (reTerminal front-panel buttons via evdev)
   │       ├── config.py           (settings with .env overrides)
   │       ├── control_panel.py    (pygame control window: buttons, sliders, waveform)
   │       ├── mixer.py            (XR12 OSC crossfade)
