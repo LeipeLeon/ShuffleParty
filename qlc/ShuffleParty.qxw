@@ -111,8 +111,9 @@
     <BackgroundImage>None</BackgroundImage>
     <Font>Default</Font>
    </Appearance>
-   <!-- Slider: DJ Set scene level (controlled by /dj OSC) -->
-   <Slider Caption="DJ Set" ID="0" WidgetStyle="Slider" InvertedAppearance="false">
+   <!-- Slider: DJ FX lights level (controlled by /dj OSC) -->
+   <!-- Level mode directly controls fixture channels 1-4 -->
+   <Slider Caption="DJ FX" ID="0" WidgetStyle="Slider" InvertedAppearance="false">
     <WindowState Visible="True" X="10" Y="10" Width="60" Height="300"/>
     <Appearance>
      <FrameStyle>None</FrameStyle>
@@ -121,14 +122,18 @@
      <BackgroundImage>None</BackgroundImage>
      <Font>Default</Font>
     </Appearance>
-    <SliderMode ValueDisplayStyle="Percentage" ClickAndGoType="None">Playback</SliderMode>
-    <Playback>
-     <Function>0</Function>
-    </Playback>
+    <SliderMode ValueDisplayStyle="Percentage" ClickAndGoType="None" Monitor="false">Level</SliderMode>
+    <Level LowLimit="0" HighLimit="255" Value="0">
+     <Channel Fixture="0">0</Channel>
+     <Channel Fixture="1">0</Channel>
+     <Channel Fixture="2">0</Channel>
+     <Channel Fixture="3">0</Channel>
+    </Level>
     <Input Universe="0" Channel="27753"/>
    </Slider>
-   <!-- Slider: Shuffle scene level (controlled by /shuffle OSC) -->
-   <Slider Caption="Shuffle" ID="1" WidgetStyle="Slider" InvertedAppearance="false">
+   <!-- Slider: Pin spots level (controlled by /shuffle OSC) -->
+   <!-- Level mode directly controls fixture channels 5-6 -->
+   <Slider Caption="Pin Spots" ID="1" WidgetStyle="Slider" InvertedAppearance="false">
     <WindowState Visible="True" X="80" Y="10" Width="60" Height="300"/>
     <Appearance>
      <FrameStyle>None</FrameStyle>
@@ -137,10 +142,11 @@
      <BackgroundImage>None</BackgroundImage>
      <Font>Default</Font>
     </Appearance>
-    <SliderMode ValueDisplayStyle="Percentage" ClickAndGoType="None">Playback</SliderMode>
-    <Playback>
-     <Function>1</Function>
-    </Playback>
+    <SliderMode ValueDisplayStyle="Percentage" ClickAndGoType="None" Monitor="false">Level</SliderMode>
+    <Level LowLimit="0" HighLimit="255" Value="0">
+     <Channel Fixture="4">0</Channel>
+     <Channel Fixture="5">0</Channel>
+    </Level>
     <Input Universe="0" Channel="34360"/>
    </Slider>
   </Frame>
