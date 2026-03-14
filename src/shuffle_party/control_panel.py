@@ -31,6 +31,7 @@ class SharedState:
         self.track_display = mp.Array("c", 512)  # "Artist — Title" for display
         self.cover_art = mp.Array("c", 200_000)  # JPEG/PNG cover art bytes
         self.cover_art_size = mp.Value("i", 0)  # actual size of cover art data
+        self.track_bpm = mp.Value("d", 0.0)
         self.waveform = mp.Array("f", WAVEFORM_BINS)  # normalized peak values 0.0–1.0
         self.waveform_ready = mp.Value("i", 0)  # flag
 
@@ -161,6 +162,9 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
         font=("Helvetica", 12, "bold"), wraplength=340,
     ).pack(anchor="w")
 
+    track_meta_var = tk.StringVar(value="")
+    ttk.Label(track_info_frame, textvariable=track_meta_var, style="Status.TLabel").pack(anchor="w")
+
     mp3_time_var = tk.StringVar(value="")
     ttk.Label(track_info_frame, textvariable=mp3_time_var, style="Status.TLabel").pack(anchor="w")
 
@@ -238,6 +242,8 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
 
         if name:
             track_name_var.set(display or name)
+            bpm = shared.track_bpm.value
+            track_meta_var.set(f"{bpm:.1f} BPM" if bpm > 0 else "")
 
             # Load cover art once per track
             art_size = shared.cover_art_size.value
@@ -321,6 +327,7 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
                         )
             cover_photo_ref[0] = placeholder_photo
             track_name_var.set("No track loaded")
+            track_meta_var.set("")
             mp3_time_var.set("")
 
         # Channel levels
@@ -406,6 +413,7 @@ class ControlPanel:
             self.shared.track_name.value = name.encode("utf-8")[:255]
             self.shared.waveform_ready.value = 0
             self.shared.cover_art_size.value = 0
+            self.shared.track_bpm.value = 0.0
 
             try:
                 from mutagen.mp3 import MP3  # lazy import: optional dependency
@@ -423,7 +431,7 @@ class ControlPanel:
                         display = title
                 self.shared.track_display.value = display.encode("utf-8")[:511]
 
-                # Extract cover art
+                # Extract cover art and BPM from tags
                 if audio.tags:
                     for key in audio.tags:
                         if key.startswith("APIC"):
@@ -431,6 +439,17 @@ class ControlPanel:
                             if len(art_data) <= 200_000:
                                 self.shared.cover_art[:len(art_data)] = art_data
                                 self.shared.cover_art_size.value = len(art_data)
+                            break
+
+                    # Read BPM from Traktor PRIV tag (HBPM chunk)
+                    for key in audio.tags:
+                        if "TRAKTOR" in key:
+                            data = audio.tags[key].data
+                            idx = data.find(b"MPBH")
+                            if idx >= 0 and idx + 16 <= len(data):
+                                bpm = struct.unpack("<f", data[idx + 12:idx + 16])[0]
+                                if 30 < bpm < 300:
+                                    self.shared.track_bpm.value = bpm
                             break
             except Exception as e:
                 logger.warning(f"Could not read MP3 metadata for {track_path} — {e!r}")
@@ -443,6 +462,7 @@ class ControlPanel:
             self.shared.track_display.value = b"\x00" * 511
             self.shared.mp3_duration_ms.value = 0
             self.shared.cover_art_size.value = 0
+            self.shared.track_bpm.value = 0.0
             self.shared.waveform_ready.value = 0
 
     def _generate_waveform(self, track_path: str) -> None:
