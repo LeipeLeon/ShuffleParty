@@ -136,9 +136,6 @@ def run() -> None:
             if event.type in (pygame.QUIT, pygame.WINDOWCLOSE):
                 running = False
 
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                running = False
-
             elif (event.type == pygame.KEYDOWN
                   and event.key == pygame.K_f
                   and event.mod & pygame.KMOD_META):
