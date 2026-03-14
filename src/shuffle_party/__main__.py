@@ -95,8 +95,8 @@ def run() -> None:
     running = True
     while running:
         for event in pygame.event.get():
-            # Window close
-            if event.type == pygame.WINDOWCLOSE:
+            # Quit
+            if event.type in (pygame.QUIT, pygame.WINDOWCLOSE):
                 running = False
 
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
