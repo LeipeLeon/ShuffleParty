@@ -63,3 +63,4 @@ class ShuffleParty:
         self.state = State.DJ_SET
         self.mixer.fade_in()
         self.lighting.activate_dj_set()
+        self.display.start_timer()

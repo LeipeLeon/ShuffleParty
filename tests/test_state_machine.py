@@ -84,8 +84,9 @@ class TestStateMachine:
     def test_transition_to_dj_set_resets_timer(self):
         self.party.start_dj_set()
         self.party.on_timer_expired()
+        self.party.display.start_timer.reset_mock()
         self.party.on_shuffle_track_ended()
-        self.party.display.start_timer.assert_called()
+        self.party.display.start_timer.assert_called_once()
 
     def test_start_dj_set_fades_in(self):
         self.party.start_dj_set()
