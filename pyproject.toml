@@ -8,6 +8,7 @@ dependencies = [
     "python-osc",
     "xair-api",
     "mutagen",
+    "pillow>=12.1.1",
 ]
 
 [dependency-groups]

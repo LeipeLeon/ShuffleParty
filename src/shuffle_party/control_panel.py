@@ -28,6 +28,9 @@ class SharedState:
         self.mp3_pos_ms = mp.Value("i", -1)  # -1 = not playing
         self.mp3_duration_ms = mp.Value("i", 0)  # total track length
         self.track_name = mp.Array("c", 256)  # current track filename
+        self.track_display = mp.Array("c", 512)  # "Artist — Title" for display
+        self.cover_art = mp.Array("c", 200_000)  # JPEG/PNG cover art bytes
+        self.cover_art_size = mp.Value("i", 0)  # actual size of cover art data
         self.waveform = mp.Array("f", WAVEFORM_BINS)  # normalized peak values 0.0–1.0
         self.waveform_ready = mp.Value("i", 0)  # flag
 
@@ -54,7 +57,7 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
 
     root = tk.Tk()
     root.title("Shuffle Partey — Controls")
-    root.geometry("480x650")
+    root.geometry("480x720")
     root.resizable(False, False)
 
     style = ttk.Style()
@@ -119,8 +122,26 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
     frame_mp3 = ttk.LabelFrame(root, text="Shuffle Track", padding=10)
     frame_mp3.pack(fill="x", **pad)
 
-    track_name_var = tk.StringVar(value="No track playing")
-    ttk.Label(frame_mp3, textvariable=track_name_var, style="Status.TLabel").pack(anchor="w")
+    # Cover art + track info side by side
+    track_top = ttk.Frame(frame_mp3)
+    track_top.pack(fill="x")
+
+    cover_size = 80
+    cover_label = tk.Label(track_top, width=cover_size, height=cover_size, bg="#2a2a3e")
+    cover_label.pack(side="left", padx=(0, 8))
+    cover_photo_ref = [None]  # keep reference to prevent GC
+
+    track_info_frame = ttk.Frame(track_top)
+    track_info_frame.pack(side="left", fill="x", expand=True)
+
+    track_name_var = tk.StringVar(value="No track loaded")
+    ttk.Label(
+        track_info_frame, textvariable=track_name_var,
+        font=("Helvetica", 12, "bold"), wraplength=340,
+    ).pack(anchor="w")
+
+    mp3_time_var = tk.StringVar(value="")
+    ttk.Label(track_info_frame, textvariable=mp3_time_var, style="Status.TLabel").pack(anchor="w")
 
     waveform_height = 60
     waveform_canvas = tk.Canvas(
@@ -128,10 +149,8 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
         highlightthickness=0,
     )
     waveform_canvas.pack(fill="x", pady=(4, 0))
-    waveform_drawn = [False]  # mutable flag for whether waveform bars are drawn
-
-    mp3_time_var = tk.StringVar(value="")
-    ttk.Label(frame_mp3, textvariable=mp3_time_var, style="Status.TLabel").pack(anchor="e")
+    waveform_drawn = [False]
+    cover_loaded_for = [b""]  # track which cover is currently shown
 
     # -- Master volume --
     frame_master = ttk.LabelFrame(root, text="Master Volume", padding=10)
@@ -189,13 +208,41 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
         seconds = rem % 60
         remaining_var.set(f"{minutes:02d}:{seconds:02d}")
 
-        # Track name and waveform
-        name = shared.track_name.value.decode("utf-8", errors="ignore").rstrip("\x00")
+        # Track info, cover art, and waveform
+        raw_name = shared.track_name.value
+        name = raw_name.decode("utf-8", errors="ignore").rstrip("\x00")
+        display = shared.track_display.value.decode("utf-8", errors="ignore").rstrip("\x00")
         duration = shared.mp3_duration_ms.value
         pos = shared.mp3_pos_ms.value
 
         if name:
-            track_name_var.set(name)
+            track_name_var.set(display or name)
+
+            # Load cover art once per track
+            art_size = shared.cover_art_size.value
+            if raw_name != cover_loaded_for[0]:
+                cover_loaded_for[0] = raw_name
+                if art_size > 0:
+                    try:
+                        import io
+
+                        from PIL import Image, ImageTk
+                        art_bytes = bytes(shared.cover_art[:art_size])
+                        img = Image.open(io.BytesIO(art_bytes))
+                        img = img.resize((cover_size, cover_size), Image.Resampling.LANCZOS)
+                        photo = ImageTk.PhotoImage(img)
+                        cover_label.configure(image=photo, width=cover_size, height=cover_size)
+                        cover_photo_ref[0] = photo
+                    except Exception:
+                        cover_label.configure(
+                            image="", text="", width=cover_size, height=cover_size,
+                        )
+                        cover_photo_ref[0] = None
+                else:
+                    cover_label.configure(
+                            image="", text="", width=cover_size, height=cover_size,
+                        )
+                    cover_photo_ref[0] = None
 
             # Draw waveform bars once when a new track loads
             if shared.waveform_ready.value and not waveform_drawn[0]:
@@ -243,6 +290,11 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
         else:
             waveform_canvas.delete("waveform", "playhead")
             waveform_drawn[0] = False
+            cover_loaded_for[0] = b""
+            cover_label.configure(
+                            image="", text="", width=cover_size, height=cover_size,
+                        )
+            cover_photo_ref[0] = None
             track_name_var.set("No track loaded")
             mp3_time_var.set("")
 
@@ -323,22 +375,49 @@ class ControlPanel:
         return False
 
     def set_track_name(self, track_path: str) -> None:
-        """Set the current track name, read its duration, and generate waveform."""
+        """Set track info from ID3 tags, read duration, cover art, and generate waveform."""
         if track_path:
             name = os.path.basename(track_path)
             self.shared.track_name.value = name.encode("utf-8")[:255]
             self.shared.waveform_ready.value = 0
+            self.shared.cover_art_size.value = 0
+
             try:
                 from mutagen.mp3 import MP3  # lazy import: optional dependency
                 audio = MP3(track_path)
                 self.shared.mp3_duration_ms.value = int(audio.info.length * 1000)
+
+                # Build display string from ID3 tags
+                display = name
+                if audio.tags:
+                    artist = str(audio.tags["TPE1"].text[0]) if "TPE1" in audio.tags else ""
+                    title = str(audio.tags["TIT2"].text[0]) if "TIT2" in audio.tags else ""
+                    if artist and title:
+                        display = f"{artist} — {title}"
+                    elif title:
+                        display = title
+                self.shared.track_display.value = display.encode("utf-8")[:511]
+
+                # Extract cover art
+                if audio.tags:
+                    for key in audio.tags:
+                        if key.startswith("APIC"):
+                            art_data = audio.tags[key].data
+                            if len(art_data) <= 200_000:
+                                self.shared.cover_art[:len(art_data)] = art_data
+                                self.shared.cover_art_size.value = len(art_data)
+                            break
             except Exception as e:
-                logger.warning(f"Could not read MP3 duration for {track_path} — {e!r}")
+                logger.warning(f"Could not read MP3 metadata for {track_path} — {e!r}")
                 self.shared.mp3_duration_ms.value = 0
+                self.shared.track_display.value = name.encode("utf-8")[:511]
+
             self._generate_waveform(track_path)
         else:
             self.shared.track_name.value = b"\x00" * 255
+            self.shared.track_display.value = b"\x00" * 511
             self.shared.mp3_duration_ms.value = 0
+            self.shared.cover_art_size.value = 0
             self.shared.waveform_ready.value = 0
 
     def _generate_waveform(self, track_path: str) -> None:
