@@ -105,6 +105,14 @@ def run() -> None:
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False
 
+            elif (event.type == pygame.KEYDOWN
+                  and event.key == pygame.K_f
+                  and event.mod & pygame.KMOD_META):
+                if party.state == State.IDLE:
+                    control._start_dj = True
+                else:
+                    control._fade_out_now = True
+
             elif event.type == TIMER_TICK:
                 if party.state == State.DJ_SET:
                     expired = party.display.tick()
