@@ -210,6 +210,9 @@ def run() -> None:
             crossfade_start = time.monotonic()
             crossfading = True
             prev_state = party.state
+            # Reset timer display immediately so it shows full duration during crossfade
+            if party.state == State.DJ_SET:
+                party.display.remaining_seconds = party.display.set_duration
 
         # Calculate crossfade progress (0.0 = just started, 1.0 = done)
         if crossfading:
