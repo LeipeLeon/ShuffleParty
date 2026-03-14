@@ -167,11 +167,10 @@ def run() -> None:
         was_fading = party.mixer.is_fading
         party.mixer.tick()
 
-        # When any crossfade completes: reset the countdown timer
+        # When crossfade completes back to DJ_SET: reset timer, stop music, preload
         if was_fading and not party.mixer.is_fading:
-            party.display.start_timer()
-            # After crossfade back to DJ_SET: stop music, preload next track
             if party.state == State.DJ_SET:
+                party.display.start_timer()
                 pygame.mixer.music.stop()
                 if track_played:
                     preload_track(party, control)
