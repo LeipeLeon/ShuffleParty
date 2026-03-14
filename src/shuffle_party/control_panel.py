@@ -31,7 +31,6 @@ class SharedState:
         self.track_display = mp.Array("c", 512)  # "Artist — Title" for display
         self.cover_art = mp.Array("c", 200_000)  # JPEG/PNG cover art bytes
         self.cover_art_size = mp.Value("i", 0)  # actual size of cover art data
-        self.track_bpm = mp.Value("d", 0.0)
         self.fadeout_cue_ms = mp.Value("i", -1)  # -1 = no cue, play to end
         self.waveform = mp.Array("f", WAVEFORM_BINS)  # normalized peak values 0.0–1.0
         self.waveform_ready = mp.Value("i", 0)  # flag
@@ -163,9 +162,6 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
         font=("Helvetica", 12, "bold"), wraplength=340,
     ).pack(anchor="w")
 
-    track_meta_var = tk.StringVar(value="")
-    ttk.Label(track_info_frame, textvariable=track_meta_var, style="Status.TLabel").pack(anchor="w")
-
     mp3_time_var = tk.StringVar(value="")
     ttk.Label(track_info_frame, textvariable=mp3_time_var, style="Status.TLabel").pack(anchor="w")
 
@@ -243,8 +239,6 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
 
         if name:
             track_name_var.set(display or name)
-            bpm = shared.track_bpm.value
-            track_meta_var.set(f"{bpm:.1f} BPM" if bpm > 0 else "")
 
             # Load cover art once per track
             art_size = shared.cover_art_size.value
@@ -336,7 +330,6 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
                         )
             cover_photo_ref[0] = placeholder_photo
             track_name_var.set("No track loaded")
-            track_meta_var.set("")
             mp3_time_var.set("")
 
         # Channel levels
@@ -353,51 +346,6 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
 
     poll()
     root.mainloop()
-
-
-def _parse_traktor_fadeout_cue(data: bytes, duration_ms: int) -> int:
-    """Extract a fadeout cue position from Traktor PRIV tag data.
-
-    Scans CUEP chunks for hotcues (type 0) whose name contains "fade".
-    Returns position in ms, or -1 if not found.
-
-    CUEP binary layout:
-      header: "PEUC"(4) + chunk_size(4)
-      body:   cue_idx(4) + cue_type(4) + num_sub(4) + name_len(4) + name(n*2 UTF-16LE)
-      sub-entry data follows, with position as a float64 at offset +8 from start of sub-data
-    """
-    idx = 0
-    while True:
-        idx = data.find(b"PEUC", idx)
-        if idx < 0:
-            return -1
-        if idx + 8 > len(data):
-            return -1
-        chunk_size = struct.unpack("<I", data[idx + 4:idx + 8])[0]
-        chunk_end = idx + 8 + chunk_size
-        if chunk_end > len(data):
-            return -1
-
-        body = data[idx + 8:chunk_end]
-        if len(body) < 16:
-            idx = chunk_end
-            continue
-
-        cue_type = struct.unpack("<I", body[4:8])[0]
-        name_len = struct.unpack("<I", body[12:16])[0]
-        name_end = 16 + name_len * 2
-
-        if cue_type == 0 and name_end <= len(body):  # type 0 = hotcue
-            name = body[16:name_end].decode("utf-16-le", errors="replace").lower()
-            if "fade" in name:
-                # Position is the first float64 in the sub-entry data
-                sub_data_start = name_end
-                if sub_data_start + 16 <= len(body):
-                    pos_ms = struct.unpack("<d", body[sub_data_start + 8:sub_data_start + 16])[0]
-                    if 0 < pos_ms < duration_ms:
-                        return int(pos_ms)
-
-        idx = chunk_end
 
 
 class ControlPanel:
@@ -476,7 +424,6 @@ class ControlPanel:
             self.shared.track_name.value = name.encode("utf-8")[:255]
             self.shared.waveform_ready.value = 0
             self.shared.cover_art_size.value = 0
-            self.shared.track_bpm.value = 0.0
             self.shared.fadeout_cue_ms.value = -1
 
             try:
@@ -506,36 +453,16 @@ class ControlPanel:
                                 self.shared.cover_art_size.value = len(art_data)
                             break
 
-                    # Read BPM and fadeout cue from Traktor PRIV tag
+                    # Read fadeout cue from TXXX:FADEOUT_MS tag
                     for key in audio.tags:
-                        if "TRAKTOR" not in key:
-                            continue
-                        data = audio.tags[key].data
-
-                        # BPM from MPBH chunk
-                        bpm_idx = data.find(b"MPBH")
-                        if bpm_idx >= 0 and bpm_idx + 16 <= len(data):
-                            bpm = struct.unpack("<f", data[bpm_idx + 12:bpm_idx + 16])[0]
-                            if 30 < bpm < 300:
-                                self.shared.track_bpm.value = bpm
-
-                        # Fadeout cue from CUEP chunks (type 0 = hotcue)
-                        cue_ms = _parse_traktor_fadeout_cue(data, duration_ms)
-                        if cue_ms >= 0:
-                            self.shared.fadeout_cue_ms.value = cue_ms
-                        break
-
-                    # Fallback: TXXX:FADEOUT_MS tag (works with any tag editor)
-                    if self.shared.fadeout_cue_ms.value < 0:
-                        for key in audio.tags:
-                            if key.startswith("TXXX:") and "FADEOUT" in key.upper():
-                                try:
-                                    ms = int(audio.tags[key].text[0])
-                                    if 0 < ms < duration_ms:
-                                        self.shared.fadeout_cue_ms.value = ms
-                                except (ValueError, IndexError):
-                                    pass
-                                break
+                        if key.startswith("TXXX:") and "FADEOUT" in key.upper():
+                            try:
+                                ms = int(audio.tags[key].text[0])
+                                if 0 < ms < duration_ms:
+                                    self.shared.fadeout_cue_ms.value = ms
+                            except (ValueError, IndexError):
+                                pass
+                            break
 
                 if self.shared.fadeout_cue_ms.value >= 0:
                     logger.info(
@@ -553,7 +480,6 @@ class ControlPanel:
             self.shared.track_display.value = b"\x00" * 511
             self.shared.mp3_duration_ms.value = 0
             self.shared.cover_art_size.value = 0
-            self.shared.track_bpm.value = 0.0
             self.shared.fadeout_cue_ms.value = -1
             self.shared.waveform_ready.value = 0
 
