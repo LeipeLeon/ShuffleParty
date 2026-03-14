@@ -178,5 +178,3 @@ ShuffleParty/
 
 **Python wins** because [`xair-api`](https://pypi.org/project/xair-api/) gives direct fader control over the XR12 via WiFi, [QLC+](https://www.qlcplus.org/) handles all DMX fixture management and light show design (triggered via OSC), and `pygame` handles audio, display, and the control panel in a single process.
 
-[^cuepoint]: A defined position marker that belongs to a track, like the hot cues on a Pioneer CDJ.
-[^playhead]: The current playback position in the audio player
