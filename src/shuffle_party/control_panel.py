@@ -467,7 +467,7 @@ class ControlPanel:
         spacing = (w - 24) // n_faders
         for i, (label, level, color, is_master) in enumerate(faders):
             cx = 12 + i * spacing + spacing // 2
-            bar_w = 24 if is_master else spacing - 20
+            bar_w = 24 if is_master else 40
             self._draw_vertical_bar(
                 surf, cx, y, bar_w, fader_h, label, level, color, is_master,
             )
