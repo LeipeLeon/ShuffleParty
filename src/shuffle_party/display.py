@@ -18,6 +18,12 @@ class Display:
             self.remaining_seconds -= 1
         return self.remaining_seconds == 0
 
+    def change_duration(self, new_duration: int) -> None:
+        """Change the set duration. Adjusts remaining time proportionally."""
+        elapsed = self.set_duration - self.remaining_seconds
+        self.set_duration = new_duration
+        self.remaining_seconds = max(0, new_duration - elapsed)
+
     def show_shuffle_logo(self) -> None:
         """Switch the display to show the shuffle logo."""
         pass  # pygame rendering handled in main loop

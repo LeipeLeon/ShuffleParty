@@ -65,3 +65,9 @@ class Mixer:
                 self._client.send(f"/ch/{ch:02d}/mix/fader", shuffle_value)
             if i < steps:
                 time.sleep(step_time)
+
+    def set_master_volume(self, value: float) -> None:
+        """Set the main LR fader (0.0–1.0)."""
+        if self._client is None:
+            return
+        self._client.send("/lr/mix/fader", value)
