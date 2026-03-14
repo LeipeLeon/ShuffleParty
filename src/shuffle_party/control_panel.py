@@ -131,6 +131,27 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
     cover_label.pack(side="left", padx=(0, 8))
     cover_photo_ref = [None]  # keep reference to prevent GC
 
+    # Create a placeholder image for when no cover art is available
+    def _make_placeholder():
+        from PIL import Image, ImageDraw, ImageFont, ImageTk
+        img = Image.new("RGB", (cover_size, cover_size), "#2a2a3e")
+        draw = ImageDraw.Draw(img)
+        # Draw a music note icon (♪) centered
+        try:
+            font = ImageFont.truetype("/System/Library/Fonts/Apple Symbols.ttf", 40)
+        except Exception:
+            font = ImageFont.load_default()
+        draw.text(
+            (cover_size / 2, cover_size / 2), "\u266b",
+            fill="#555570", font=font, anchor="mm",
+        )
+        return ImageTk.PhotoImage(img)
+
+    try:
+        placeholder_photo = _make_placeholder()
+    except Exception:
+        placeholder_photo = None
+
     track_info_frame = ttk.Frame(track_top)
     track_info_frame.pack(side="left", fill="x", expand=True)
 
@@ -235,14 +256,16 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
                         cover_photo_ref[0] = photo
                     except Exception:
                         cover_label.configure(
-                            image="", text="", width=cover_size, height=cover_size,
+                            image=placeholder_photo or "", text="",
+                            width=cover_size, height=cover_size,
                         )
-                        cover_photo_ref[0] = None
+                        cover_photo_ref[0] = placeholder_photo
                 else:
                     cover_label.configure(
-                            image="", text="", width=cover_size, height=cover_size,
+                            image=placeholder_photo or "", text="",
+                            width=cover_size, height=cover_size,
                         )
-                    cover_photo_ref[0] = None
+                    cover_photo_ref[0] = placeholder_photo
 
             # Draw waveform bars once when a new track loads
             if shared.waveform_ready.value and not waveform_drawn[0]:
@@ -292,9 +315,10 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
             waveform_drawn[0] = False
             cover_loaded_for[0] = b""
             cover_label.configure(
-                            image="", text="", width=cover_size, height=cover_size,
+                            image=placeholder_photo or "", text="",
+                            width=cover_size, height=cover_size,
                         )
-            cover_photo_ref[0] = None
+            cover_photo_ref[0] = placeholder_photo
             track_name_var.set("No track loaded")
             mp3_time_var.set("")
 
