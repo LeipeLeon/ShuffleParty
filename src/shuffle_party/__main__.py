@@ -68,7 +68,7 @@ def run() -> None:
     pygame.mixer.init()
 
     # Detect multi-display: reTerminal built-in + external HDMI
-    num_displays = pygame.display.get_num_video_displays()
+    num_displays = pygame.display.get_num_displays()
     multi_display = num_displays >= 2
 
     if multi_display:
