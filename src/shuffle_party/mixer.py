@@ -3,7 +3,10 @@
 Wraps the Behringer XR12 fader control for DJ and shuffle channel crossfading.
 """
 
+import logging
 import time
+
+logger = logging.getLogger(__name__)
 
 
 class Mixer:
@@ -36,11 +39,15 @@ class Mixer:
             print("Continuing without mixer control.")
 
     def fade_out(self) -> None:
-        """Crossfade: DJ channels down, shuffle channel up."""
+        """Crossfade: DJ channels down, shuffle channels up."""
+        logger.info("Fade out: DJ %.1f→%.1f, Shuffle %.1f→%.1f over %.1fs",
+                     1.0, 0.0, 0.0, 1.0, self.fade_duration)
         self._crossfade(dj_start=1.0, dj_end=0.0, shuffle_start=0.0, shuffle_end=1.0)
 
     def fade_in(self) -> None:
-        """Crossfade: shuffle channel down, DJ channels up."""
+        """Crossfade: shuffle channels down, DJ channels up."""
+        logger.info("Fade in: DJ %.1f→%.1f, Shuffle %.1f→%.1f over %.1fs",
+                     0.0, 1.0, 1.0, 0.0, self.fade_duration)
         self._crossfade(dj_start=0.0, dj_end=1.0, shuffle_start=1.0, shuffle_end=0.0)
 
     def _crossfade(
@@ -63,8 +70,13 @@ class Mixer:
                 self._client.send(f"/ch/{ch:02d}/mix/fader", dj_value)
             for ch in self.shuffle_channels:
                 self._client.send(f"/ch/{ch:02d}/mix/fader", shuffle_value)
+            if i % 10 == 0:
+                logger.debug("  step %d/%d — DJ ch%s=%.3f, Shuffle ch%s=%.3f",
+                             i, steps, self.dj_channels, dj_value,
+                             self.shuffle_channels, shuffle_value)
             if i < steps:
                 time.sleep(step_time)
+        logger.info("Fade complete")
 
     def set_master_volume(self, value: float) -> None:
         """Set the main LR fader (0.0–1.0)."""

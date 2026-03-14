@@ -4,6 +4,7 @@ Runs the pygame event loop, coordinating the state machine with
 display rendering, audio playback, and hardware I/O.
 """
 
+import logging
 import sys
 import time
 import pygame
@@ -11,6 +12,12 @@ import pygame
 from shuffle_party.app import ShuffleParty, State
 from shuffle_party import config
 from shuffle_party.control_panel import ControlPanel
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s %(name)s %(levelname)s %(message)s",
+    datefmt="%H:%M:%S",
+)
 
 # Pygame custom events
 TIMER_TICK = pygame.USEREVENT + 1
@@ -76,6 +83,7 @@ def run() -> None:
                             control.set_track_name(track)
                             try:
                                 pygame.mixer.music.load(track)
+                                pygame.mixer.music.set_volume(0.0)
                                 pygame.mixer.music.play()
                             except Exception as e:
                                 print(f"Warning: Could not play {track} — {e}")
@@ -97,6 +105,7 @@ def run() -> None:
                     control.set_track_name(track)
                     try:
                         pygame.mixer.music.load(track)
+                        pygame.mixer.music.set_volume(0.0)
                         pygame.mixer.music.play()
                     except Exception as e:
                         print(f"Warning: Could not play {track} — {e}")
@@ -115,6 +124,13 @@ def run() -> None:
                 crossfading = False
         else:
             fade_t = 1.0
+
+        # Crossfade the shuffle track audio volume
+        if crossfading and pygame.mixer.music.get_busy():
+            if party.state == State.SHUFFLE:
+                pygame.mixer.music.set_volume(fade_t)
+            else:
+                pygame.mixer.music.set_volume(1.0 - fade_t)
 
         # Render with crossfade
         screen.fill(BG_COLOR)
