@@ -144,11 +144,17 @@ def run() -> None:
             timer_alpha = int(255 * fade_t)
             logo_alpha = int(255 * (1.0 - fade_t))
 
-        # Draw logo layer
+        # Draw logo layer (fit to window, preserving aspect ratio)
         if logo_original and logo_alpha > 0:
-            logo = pygame.transform.scale(logo_original, (w, h))
+            orig_w, orig_h = logo_original.get_size()
+            scale = min(w / orig_w, h / orig_h)
+            logo_w = int(orig_w * scale)
+            logo_h = int(orig_h * scale)
+            logo = pygame.transform.smoothscale(logo_original, (logo_w, logo_h))
             logo.set_alpha(logo_alpha)
-            screen.blit(logo, (0, 0))
+            logo_x = (w - logo_w) // 2
+            logo_y = (h - logo_h) // 2
+            screen.blit(logo, (logo_x, logo_y))
 
         # Draw timer layer
         if timer_alpha > 0:
