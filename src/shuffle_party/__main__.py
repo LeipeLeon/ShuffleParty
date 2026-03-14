@@ -8,6 +8,7 @@ import sys
 import pygame
 
 from shuffle_party.app import ShuffleParty, State
+from shuffle_party.control_panel import ControlPanel
 
 # Pygame custom events
 TIMER_TICK = pygame.USEREVENT + 1
@@ -34,6 +35,10 @@ def run() -> None:
         logo_original = None
 
     party = ShuffleParty()
+    party._current_track = None
+
+    # Launch control panel in a separate thread
+    control = ControlPanel(party)
 
     # Set up the music end event so we detect when shuffle tracks finish
     pygame.mixer.music.set_endevent(SHUFFLE_TRACK_END)
@@ -61,6 +66,7 @@ def run() -> None:
                     if expired:
                         track = party.on_timer_expired()
                         if track:
+                            party._current_track = track
                             try:
                                 pygame.mixer.music.load(track)
                                 pygame.mixer.music.play()
@@ -68,6 +74,7 @@ def run() -> None:
                                 print(f"Warning: Could not play {track} — {e}")
 
             elif event.type == SHUFFLE_TRACK_END:
+                party._current_track = None
                 party.on_shuffle_track_ended()
 
         # Render
