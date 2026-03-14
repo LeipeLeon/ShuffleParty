@@ -434,7 +434,10 @@ class ControlPanel:
         # -- Faders (master + DJ/Shuffle vertical bars) --
         self._draw_section_label(surf, "Levels", y)
         y += 18
-        fader_h = 140
+        h = surf.get_height()
+        btn_h = 56
+        dur_area = 50  # duration slider height above buttons
+        fader_h = h - btn_h - dur_area - y - 8
         faders = [
             ("Master", self._volume_value, ACCENT, True),
             ("Shuffle", self.party.mixer.shuffle_level, ACCENT, False),
@@ -454,8 +457,6 @@ class ControlPanel:
         y += fader_h + 8
 
         # -- Virtual reTerminal buttons (pinned to bottom, 6 equal columns, last 4 are buttons) --
-        h = surf.get_height()
-        btn_h = 56
         btn_y = h - btn_h
 
         # -- Duration slider (just above buttons) --
