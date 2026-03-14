@@ -29,6 +29,7 @@ class SharedState:
         self.duration_changed = mp.Value("i", 0)  # flag
         self.master_volume = mp.Value("d", 1.0)
         self.volume_changed = mp.Value("i", 0)  # flag
+        self.fade_out_now = mp.Value("i", 0)  # flag
 
         # Channel info for display
         self.dj_channels = dj_channels
@@ -60,6 +61,13 @@ def _run_panel(shared: SharedState, dj_channels: list[int], shuffle_channels: li
 
     remaining_var = tk.StringVar(value="--:--")
     ttk.Label(frame_status, textvariable=remaining_var, style="Big.TLabel").pack(side="right")
+
+    # -- Fade out now button --
+    def on_fade_out_now():
+        shared.fade_out_now.value = 1
+
+    fade_btn = ttk.Button(root, text="Fade Track Out Now", command=on_fade_out_now)
+    fade_btn.pack(fill="x", **pad)
 
     # -- Set duration control --
     frame_duration = ttk.LabelFrame(root, text="Set Duration", padding=10)
@@ -249,6 +257,7 @@ class ControlPanel:
             daemon=True,
         )
         self._process.start()
+        self._fade_out_now = False
 
     def update(self) -> None:
         """Called from the main loop to sync state in both directions."""
@@ -273,10 +282,22 @@ class ControlPanel:
             self.shared.duration_changed.value = 0
             self.party.display.change_duration(self.shared.new_duration.value)
 
+        # Pull fade out now from control panel
+        if self.shared.fade_out_now.value:
+            self.shared.fade_out_now.value = 0
+            self._fade_out_now = True
+
         # Pull master volume changes from control panel
         if self.shared.volume_changed.value:
             self.shared.volume_changed.value = 0
             self.party.mixer.set_master_volume(self.shared.master_volume.value)
+
+    def should_fade_out_now(self) -> bool:
+        """Check and clear the fade-out-now flag."""
+        if self._fade_out_now:
+            self._fade_out_now = False
+            return True
+        return False
 
     def set_track_name(self, track_path: str) -> None:
         """Set the current track name, read its duration, and generate waveform."""

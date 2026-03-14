@@ -79,6 +79,10 @@ def run() -> None:
         # Sync shared state with control panel
         control.update()
 
+        # Handle fade out now button
+        if control.should_fade_out_now() and party.state == State.SHUFFLE:
+            pygame.mixer.music.fadeout(int(party.mixer.fade_duration * 1000))
+
         # Render
         screen.fill(BG_COLOR)
         w, h = screen.get_size()
