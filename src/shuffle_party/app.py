@@ -45,6 +45,7 @@ class ShuffleParty:
         self.state = State.SHUFFLE
         self.mixer.fade_out()
         self.lighting.activate_shuffle()
+        self.display.start_timer()
 
     def on_shuffle_track_ended(self) -> None:
         """Called when the shuffle track finishes playing."""
