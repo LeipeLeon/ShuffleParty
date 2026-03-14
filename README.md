@@ -101,18 +101,22 @@ ShuffleParty/
   ├── src/
   │   └── shuffle_party/
   │       ├── __init__.py
-  │       ├── __main__.py      (pygame event loop)
-  │       ├── app.py            (state machine + config)
-  │       ├── mixer.py          (XR12 OSC)
-  │       ├── lighting.py       (QLC+ OSC)
-  │       ├── display.py        (countdown timer)
-  │       └── track_picker.py   (random MP3 selection)
+  │       ├── __main__.py        (pygame event loop + rendering)
+  │       ├── app.py              (state machine)
+  │       ├── config.py           (settings with .env overrides)
+  │       ├── control_panel.py    (tkinter control window, separate process)
+  │       ├── mixer.py            (XR12 OSC crossfade)
+  │       ├── lighting.py         (QLC+ OSC scenes)
+  │       ├── display.py          (countdown timer logic)
+  │       └── track_picker.py     (random MP3 selection)
   ├── tests/
   │   ├── test_state_machine.py
   │   ├── test_mixer.py
   │   ├── test_lighting.py
   │   ├── test_display.py
-  │   └── test_track_picker.py
+  │   ├── test_track_picker.py
+  │   └── test_controls.py
+  ├── .env.example
   ├── pyproject.toml
   ├── start.sh
   └── README.md
