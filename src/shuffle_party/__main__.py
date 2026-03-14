@@ -173,8 +173,9 @@ def run() -> None:
             # After crossfade back to DJ_SET: stop music, preload next track
             if party.state == State.DJ_SET:
                 pygame.mixer.music.stop()
-                preload_track(party, control)
-                track_played = False
+                if track_played:
+                    preload_track(party, control)
+                    track_played = False
 
         # Update control panel (fadeout cue check)
         control.update()
@@ -207,6 +208,7 @@ def run() -> None:
                 party.on_shuffle_track_ended()
             elif party.state == State.DJ_SET:
                 start_shuffle(party, control)
+                track_played = True
 
         # Detect state change and start visual crossfade
         if party.state != prev_state:
