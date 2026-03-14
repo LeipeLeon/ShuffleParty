@@ -71,18 +71,13 @@ def run() -> None:
     num_displays = pygame.display.get_num_displays()
     multi_display = num_displays >= 2
 
+    display_window = None
     if multi_display:
         # Timer fullscreen on external HDMI (display 1)
         display_window = pygame.Window(
             "Shuffle Partey", size=(1920, 1080), display_index=1,
         )
         display_window.set_fullscreen(True)
-    else:
-        display_window = pygame.Window(
-            "Shuffle Partey", size=(270, 180), resizable=True,
-        )
-        # Position display window next to control panel (480px wide + gap)
-        display_window.position = (510, 50)
 
     clock = pygame.time.Clock()
 
@@ -238,44 +233,45 @@ def run() -> None:
             else:
                 pygame.mixer.music.set_volume(1.0 - fade_t)
 
-        # -- Render display window --
-        screen = display_window.get_surface()
-        screen.fill(BG_COLOR)
-        w, h = screen.get_size()
+        # -- Render display window (only if second screen attached) --
+        if display_window is not None:
+            screen = display_window.get_surface()
+            screen.fill(BG_COLOR)
+            w, h = screen.get_size()
 
-        # Determine alpha for each layer
-        if party.state == State.IDLE:
-            timer_alpha = 0
-            logo_alpha = 255
-        elif party.state == State.SHUFFLE:
-            timer_alpha = int(255 * (1.0 - fade_t))
-            logo_alpha = int(255 * fade_t)
-        else:
-            timer_alpha = int(255 * fade_t)
-            logo_alpha = int(255 * (1.0 - fade_t))
+            # Determine alpha for each layer
+            if party.state == State.IDLE:
+                timer_alpha = 0
+                logo_alpha = 255
+            elif party.state == State.SHUFFLE:
+                timer_alpha = int(255 * (1.0 - fade_t))
+                logo_alpha = int(255 * fade_t)
+            else:
+                timer_alpha = int(255 * fade_t)
+                logo_alpha = int(255 * (1.0 - fade_t))
 
-        # Draw logo layer (fit to window, preserving aspect ratio)
-        if logo_original and logo_alpha > 0:
-            orig_w, orig_h = logo_original.get_size()
-            scale = min(w / orig_w, h / orig_h)
-            logo_w = int(orig_w * scale)
-            logo_h = int(orig_h * scale)
-            logo = pygame.transform.smoothscale(logo_original, (logo_w, logo_h))
-            logo.set_alpha(logo_alpha)
-            logo_x = (w - logo_w) // 2
-            logo_y = (h - logo_h) // 2
-            screen.blit(logo, (logo_x, logo_y))
+            # Draw logo layer (fit to window, preserving aspect ratio)
+            if logo_original and logo_alpha > 0:
+                orig_w, orig_h = logo_original.get_size()
+                scale = min(w / orig_w, h / orig_h)
+                logo_w = int(orig_w * scale)
+                logo_h = int(orig_h * scale)
+                logo = pygame.transform.smoothscale(logo_original, (logo_w, logo_h))
+                logo.set_alpha(logo_alpha)
+                logo_x = (w - logo_w) // 2
+                logo_y = (h - logo_h) // 2
+                screen.blit(logo, (logo_x, logo_y))
 
-        # Draw timer layer
-        if timer_alpha > 0:
-            font = pygame.font.Font(None, int(h * 0.7))
-            time_str = party.display.format_time()
-            text_surface = font.render(time_str, True, TIMER_COLOR)
-            text_surface.set_alpha(timer_alpha)
-            rect = text_surface.get_rect(center=(w // 2, h // 2))
-            screen.blit(text_surface, rect)
+            # Draw timer layer
+            if timer_alpha > 0:
+                font = pygame.font.Font(None, int(h * 0.7))
+                time_str = party.display.format_time()
+                text_surface = font.render(time_str, True, TIMER_COLOR)
+                text_surface.set_alpha(timer_alpha)
+                rect = text_surface.get_rect(center=(w // 2, h // 2))
+                screen.blit(text_surface, rect)
 
-        display_window.flip()
+            display_window.flip()
 
         # -- Render control panel --
         control.draw()
