@@ -320,7 +320,6 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "mutagen" },
-    { name = "pillow" },
     { name = "pygame-ce" },
     { name = "python-osc" },
     { name = "xair-api" },
@@ -329,6 +328,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "mypy" },
+    { name = "pillow" },
     { name = "pytest" },
     { name = "ruff" },
 ]
@@ -336,7 +336,6 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "mutagen" },
-    { name = "pillow", specifier = ">=12.1.1" },
     { name = "pygame-ce" },
     { name = "python-osc" },
     { name = "xair-api" },
@@ -345,6 +344,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "mypy", specifier = ">=1.8.0" },
+    { name = "pillow", specifier = ">=12.1.1" },
     { name = "pytest" },
     { name = "ruff", specifier = ">=0.1.0" },
 ]

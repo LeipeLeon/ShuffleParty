@@ -173,6 +173,8 @@ def run() -> None:
         else:
             fade_t = 1.0
 
+        control.crossfading = crossfading
+
         # Crossfade lighting
         if crossfading:
             party.lighting.update(fade_t)

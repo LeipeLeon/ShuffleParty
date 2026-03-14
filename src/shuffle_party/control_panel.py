@@ -76,6 +76,9 @@ class ControlPanel:
         self._volume_value = 1.0
         self._dragging: str | None = None  # "duration" or "volume"
 
+        # Set by main loop
+        self.crossfading = False
+
         # Button hover
         self._hover_btn: str | None = None
 
@@ -253,7 +256,8 @@ class ControlPanel:
                 self._update_volume_slider(y)
                 return
             if (self._skip_btn_rect.collidepoint(x, y)
-                    and self.party.state == State.DJ_SET):
+                    and self.party.state == State.DJ_SET
+                    and not self.crossfading):
                 self._skip_track = True
                 return
             if (self._pause_btn_rect.collidepoint(x, y)
@@ -397,7 +401,7 @@ class ControlPanel:
                 # Pause bars
                 pygame.draw.rect(surf, TEXT, (pb.x + 7, pb.y + 5, 4, 14))
                 pygame.draw.rect(surf, TEXT, (pb.x + 13, pb.y + 5, 4, 14))
-        elif self._track_name and state == State.DJ_SET:
+        elif self._track_name and state == State.DJ_SET and not self.crossfading:
             sb = self._skip_btn_rect
             pygame.draw.rect(surf, BTN_COLOR, sb, border_radius=3)
             skip_text = self._font_small.render("Skip Track", True, TEXT)
@@ -419,10 +423,10 @@ class ControlPanel:
         fader_h = 140
         faders = [
             ("Master", self._volume_value, True),
-            (f"DJ L", self.party.mixer.dj_level, False),
-            (f"DJ R", self.party.mixer.dj_level, False),
-            (f"Sh L", self.party.mixer.shuffle_level, False),
-            (f"Sh R", self.party.mixer.shuffle_level, False),
+            ("DJ L", self.party.mixer.dj_level, False),
+            ("DJ R", self.party.mixer.dj_level, False),
+            ("Sh L", self.party.mixer.shuffle_level, False),
+            ("Sh R", self.party.mixer.shuffle_level, False),
         ]
         n_faders = len(faders)
         spacing = (WIDTH - 24) // n_faders
