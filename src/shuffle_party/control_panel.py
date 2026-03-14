@@ -89,6 +89,14 @@ class ControlPanel:
 
         # Set by main loop
         self.crossfading = False
+        self.fade_t = 1.0
+
+        # Load shuffle logo for timer area crossfade
+        self._logo: pygame.Surface | None = None
+        try:
+            self._logo = pygame.image.load("de-shuffle.png")
+        except Exception:
+            pass
 
         # Dynamic layout rects (updated each draw)
         self._dur_slider_rect = pygame.Rect(0, 0, 0, 0)
@@ -448,16 +456,43 @@ class ControlPanel:
         master_cx = 12 + fader_spacing // 2
         self._vol_slider_rect = pygame.Rect(master_cx - 12, y, 24, fader_h)
 
-        # -- Countdown timer in remaining space --
+        # -- Timer / logo crossfade in remaining space --
         timer_x = 12 + len(faders) * fader_spacing + 20
         timer_w = w - timer_x - 12
-        timer_cy = y + fader_h // 2
-        rem = self.party.display.remaining_seconds
-        time_str = f"{rem // 60:02d}:{rem % 60:02d}"
-        timer_font_size = min(int(fader_h * 0.6), int(timer_w * 0.4))
-        timer_font = pygame.font.Font(None, max(40, timer_font_size))
-        timer_text = timer_font.render(time_str, True, TEXT)
-        surf.blit(timer_text, timer_text.get_rect(center=(timer_x + timer_w // 2, timer_cy)))
+        timer_rect = pygame.Rect(timer_x, y, timer_w, fader_h)
+
+        # Determine alpha for timer and logo layers
+        if state == State.IDLE:
+            timer_alpha = 0
+            logo_alpha = 255
+        elif state == State.SHUFFLE:
+            timer_alpha = int(255 * (1.0 - self.fade_t))
+            logo_alpha = int(255 * self.fade_t)
+        else:
+            timer_alpha = int(255 * self.fade_t)
+            logo_alpha = int(255 * (1.0 - self.fade_t))
+
+        # Logo layer
+        if self._logo and logo_alpha > 0:
+            orig_w, orig_h = self._logo.get_size()
+            scale = min(timer_w / orig_w, fader_h / orig_h)
+            logo_w = int(orig_w * scale)
+            logo_h = int(orig_h * scale)
+            logo = pygame.transform.smoothscale(self._logo, (logo_w, logo_h))
+            logo.set_alpha(logo_alpha)
+            logo_x = timer_rect.centerx - logo_w // 2
+            logo_y = timer_rect.centery - logo_h // 2
+            surf.blit(logo, (logo_x, logo_y))
+
+        # Timer layer
+        if timer_alpha > 0:
+            rem = self.party.display.remaining_seconds
+            time_str = f"{rem // 60:02d}:{rem % 60:02d}"
+            timer_font_size = min(int(fader_h * 0.6), int(timer_w * 0.4))
+            timer_font = pygame.font.Font(None, max(40, timer_font_size))
+            timer_text = timer_font.render(time_str, True, TEXT)
+            timer_text.set_alpha(timer_alpha)
+            surf.blit(timer_text, timer_text.get_rect(center=timer_rect.center))
         y += fader_h + 8
 
         # -- Virtual reTerminal buttons (pinned to bottom, 6 equal columns, last 4 are buttons) --

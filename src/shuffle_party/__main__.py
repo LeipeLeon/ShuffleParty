@@ -225,6 +225,7 @@ def run() -> None:
             fade_t = 1.0
 
         control.crossfading = crossfading
+        control.fade_t = fade_t
 
         # Crossfade lighting
         if crossfading:
