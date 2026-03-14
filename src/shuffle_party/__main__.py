@@ -16,26 +16,22 @@ SHUFFLE_TRACK_END = pygame.USEREVENT + 2
 # Display constants
 BG_COLOR = (0, 0, 0)
 TIMER_COLOR = (255, 255, 255)
-FONT_SIZE = 200
 
 
 def run() -> None:
     pygame.init()
     pygame.mixer.init()
 
-    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+    screen = pygame.display.set_mode((800, 300), pygame.RESIZABLE)
     pygame.display.set_caption("Shuffle Partey")
-    pygame.mouse.set_visible(False)
 
     clock = pygame.time.Clock()
-    font = pygame.font.Font(None, FONT_SIZE)
 
     # Load shuffle logo if available
     try:
-        logo = pygame.image.load("de-shuffle.png")
-        logo = pygame.transform.scale(logo, screen.get_size())
+        logo_original = pygame.image.load("de-shuffle.png")
     except Exception:
-        logo = None
+        logo_original = None
 
     party = ShuffleParty()
 
@@ -76,14 +72,17 @@ def run() -> None:
 
         # Render
         screen.fill(BG_COLOR)
+        w, h = screen.get_size()
 
         if party.state == State.DJ_SET:
+            font = pygame.font.Font(None, int(h * 0.7))
             time_str = party.display.format_time()
             text = font.render(time_str, True, TIMER_COLOR)
-            rect = text.get_rect(center=screen.get_rect().center)
+            rect = text.get_rect(center=(w // 2, h // 2))
             screen.blit(text, rect)
         elif party.state == State.SHUFFLE:
-            if logo:
+            if logo_original:
+                logo = pygame.transform.scale(logo_original, (w, h))
                 screen.blit(logo, (0, 0))
 
         pygame.display.flip()
