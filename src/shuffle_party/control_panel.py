@@ -66,6 +66,7 @@ class ControlPanel:
         self._duration_ms = 0
         self._fadeout_cue_ms = -1
         self._waveform: list[float] = []
+        self._seek_offset_ms = 0  # offset added to get_pos() after seeking
         self._cover_art: pygame.Surface | None = None
         self._placeholder = self._make_placeholder()
 
@@ -94,6 +95,12 @@ class ControlPanel:
         pygame.draw.line(surf, color, (45, 20), (55, 24), 3)
         return surf
 
+    def _playback_pos_ms(self) -> int:
+        """Current playback position in ms, accounting for seeks. Returns -1 if not playing."""
+        if not pygame.mixer.music.get_busy():
+            return 0 if self._track_name else -1
+        return pygame.mixer.music.get_pos() + self._seek_offset_ms
+
     # -- Public interface (same as before) --
 
     def should_start_dj(self) -> bool:
@@ -112,15 +119,15 @@ class ControlPanel:
         """Check fadeout cue, apply pending slider changes."""
         # Fadeout cue check
         if self._fadeout_cue_ms >= 0 and not self._fadeout_cue_triggered:
-            if pygame.mixer.music.get_busy():
-                pos = pygame.mixer.music.get_pos()
-                if pos >= self._fadeout_cue_ms:
-                    self._fadeout_cue_triggered = True
-                    self._fade_out_now = True
+            pos = self._playback_pos_ms()
+            if pos >= self._fadeout_cue_ms:
+                self._fadeout_cue_triggered = True
+                self._fade_out_now = True
 
     def set_track_name(self, track_path: str) -> None:
         """Load track metadata, cover art, and waveform."""
         self._fadeout_cue_triggered = False
+        self._seek_offset_ms = 0
         self._waveform = []
         self._cover_art = None
         self._fadeout_cue_ms = -1
@@ -237,6 +244,8 @@ class ControlPanel:
                 seek_ms = int(t * self._duration_ms)
                 if pygame.mixer.music.get_busy():
                     pygame.mixer.music.set_pos(seek_ms / 1000.0)
+                    # get_pos() resets to 0 after set_pos(), so track the offset
+                    self._seek_offset_ms = seek_ms
                 return
 
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
@@ -412,10 +421,7 @@ class ControlPanel:
         mid = rect.centery
         half_h = rect.height / 2
 
-        # Current playback position (0 when track loaded but not yet playing)
-        pos_ms = 0 if self._track_name else -1
-        if pygame.mixer.music.get_busy():
-            pos_ms = pygame.mixer.music.get_pos()
+        pos_ms = self._playback_pos_ms()
         pos_bin = -1
         if pos_ms >= 0 and self._duration_ms > 0:
             pos_bin = int((pos_ms / self._duration_ms) * n)
@@ -477,11 +483,10 @@ class ControlPanel:
         if not self._track_name:
             return ""
         dur = self._duration_ms
-        if pygame.mixer.music.get_busy():
-            pos = pygame.mixer.music.get_pos()
-            if pos >= 0 and dur > 0:
-                rem_s = max(0, (dur - pos) / 1000)
-                return f"-{int(rem_s) // 60:02d}:{int(rem_s) % 60:02d}"
+        pos = self._playback_pos_ms()
+        if pos >= 0 and dur > 0:
+            rem_s = max(0, (dur - pos) / 1000)
+            return f"-{int(rem_s) // 60:02d}:{int(rem_s) % 60:02d}"
         if dur > 0:
             return f"Ready — {dur // 60000:02d}:{(dur // 1000) % 60:02d}"
         return "Ready"
