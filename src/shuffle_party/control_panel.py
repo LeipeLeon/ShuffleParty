@@ -244,7 +244,8 @@ class ControlPanel:
                 self._dragging = "volume"
                 self._update_volume_slider(y)
                 return
-            if self._pause_btn_rect.collidepoint(x, y):
+            if (self._pause_btn_rect.collidepoint(x, y)
+                    and self.party.state == State.SHUFFLE):
                 if self._paused:
                     pygame.mixer.music.unpause()
                     self._paused = False
@@ -372,7 +373,7 @@ class ControlPanel:
         # Pause/play button (next to track info)
         pause_y = y + 42
         self._pause_btn_rect = pygame.Rect(100, pause_y, 24, 24)
-        if self._track_name:
+        if self._track_name and state == State.SHUFFLE:
             pb = self._pause_btn_rect
             pygame.draw.rect(surf, BTN_COLOR, pb, border_radius=3)
             if self._paused:
