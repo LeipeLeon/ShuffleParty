@@ -457,6 +457,46 @@ class ControlPanel:
             self._draw_waveform(surf, wf_rect)
         y += 68
 
+        # -- Audio color visualizer --
+        audio = self.party.lighting._audio if hasattr(self.party.lighting, "_audio") else None
+        if audio and audio.available:
+            viz_h = 40
+            bass, mid, treble = audio.bass, audio.mid, audio.treble
+            beat = audio.beat
+            bar_gap = 4
+            bar_count = 3
+            bar_w = min(80, (w - 24 - bar_gap * (bar_count + 1)) // (bar_count + 1))
+            bx = 12
+
+            # R/G/B level bars
+            colors = [
+                ((200, 50, 50), bass, "Bass"),
+                ((50, 180, 80), mid, "Mid"),
+                ((50, 80, 220), treble, "Treble"),
+            ]
+            for bar_color, level, label in colors:
+                bg_rect = pygame.Rect(bx, y, bar_w, viz_h)
+                pygame.draw.rect(surf, PANEL_BG, bg_rect, border_radius=3)
+                fill_w = int(bar_w * min(1.0, level))
+                if fill_w > 0:
+                    fill_rect = pygame.Rect(bx, y, fill_w, viz_h)
+                    pygame.draw.rect(surf, bar_color, fill_rect, border_radius=3)
+                lbl = self._font_small.render(label, True, TEXT_DIM)
+                surf.blit(lbl, (bx + 4, y + viz_h // 2 - lbl.get_height() // 2))
+                bx += bar_w + bar_gap
+
+            # Combined color preview
+            r = min(255, int(bass * 200 + 30))
+            g = min(255, int(mid * 180 + 15))
+            b = min(255, int(treble * 160 + 9))
+            preview_w = w - 12 - bx
+            preview_rect = pygame.Rect(bx, y, preview_w, viz_h)
+            pygame.draw.rect(surf, (r, g, b), preview_rect, border_radius=3)
+            if beat:
+                pygame.draw.rect(surf, (255, 255, 255), preview_rect, width=2, border_radius=3)
+
+            y += viz_h + 8
+
         # -- Faders (left-aligned) + countdown timer (right) --
         self._draw_section_label(surf, "Levels", y)
         y += 18
