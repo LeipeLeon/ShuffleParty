@@ -196,20 +196,6 @@ ShuffleParty/
   └── README.md
 ```
 
-## Alternatives
-
-| | Python | Node.js + Chromium | openFrameworks | TouchDesigner | DragonRuby |
-|---|---|---|---|---|---|
-| **Audio** | pygame.mixer | Web Audio / mpv | Built-in | Built-in | Needs external lib |
-| **XR12 control** | `xair-api` (OSC) | `osc.js` | `ofxOsc` | OSC nodes | No OSC support |
-| **DMX** | OLA | `node-dmx` | `ofxDmx` | Plugins/OSC | Serial/USB adapter |
-| **Visuals** | Basic (pygame) | Excellent (HTML/CSS) | Excellent (OpenGL) | Excellent | Good (game engine) |
-| **Runs on Pi** | Yes | Yes (heavy) | Yes | No | Yes |
-| **Complexity** | Low | Medium | High | Low | Medium |
-| **Best for** | This project | Polished screen output | Future visual upgrades | Quick prototyping | Embedded Ruby |
-
-**Python wins** because [`xair-api`](https://pypi.org/project/xair-api/) gives direct fader control over the XR12 via WiFi, [QLC+](https://www.qlcplus.org/) handles all DMX fixture management and light show design (triggered via OSC), and `pygame` handles audio, display, and the control panel in a single process.
-
 ## Docs:
 
 ### Showtec LED Par 56 Short DMX
