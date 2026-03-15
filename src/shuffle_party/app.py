@@ -32,8 +32,7 @@ class ShuffleParty:
             fade_duration=config.FADE_DURATION_SECONDS,
         )
         self.lighting = Lighting(
-            host=config.QLC_HOST,
-            port=config.QLC_PORT,
+            dmx_port=config.DMX_PORT or None,
         )
         self.display = Display(set_duration=config.SET_DURATION_SECONDS)
         self.track_picker = TrackPicker(config.TRACKS_DIR)

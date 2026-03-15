@@ -5,7 +5,7 @@ description = "Autonomous DJ rotation system for Raspberry Pi"
 requires-python = ">=3.12"
 dependencies = [
     "pygame-ce",
-    "python-osc",
+    "pyserial",
     "xair-api",
     "mutagen",
     "pyobjc-framework-cocoa>=12.1; sys_platform == 'darwin'",

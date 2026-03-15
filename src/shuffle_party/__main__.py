@@ -310,6 +310,7 @@ def run() -> None:
         clock.tick(30)
 
     buttons.close()
+    party.lighting.close()
     pygame.quit()
     sys.exit()
 
