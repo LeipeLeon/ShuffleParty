@@ -21,6 +21,7 @@ SHUFFLE_CHANNEL_R = int(os.environ.get("SHUFFLE_CHANNEL_R", 2))
 
 # DMX lighting (Enttec USB Pro)
 DMX_PORT = os.environ.get("DMX_PORT", "")  # auto-detect if empty
+AUDIO_DEVICE = os.environ.get("AUDIO_DEVICE", "")  # auto-detect if empty
 
 # reTerminal buttons (evdev)
 BUTTON_DEVICE = os.environ.get("BUTTON_DEVICE", "/dev/input/event0")

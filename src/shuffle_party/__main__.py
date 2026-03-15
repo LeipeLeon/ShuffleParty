@@ -244,9 +244,11 @@ def run() -> None:
         control.crossfading = crossfading
         control.fade_t = fade_t
 
-        # Crossfade lighting
+        # Update lighting: crossfade or audio-reactive
         if crossfading:
             party.lighting.update(fade_t)
+        else:
+            party.lighting.tick()
 
         # Crossfade the shuffle track audio volume
         if crossfading and pygame.mixer.music.get_busy():

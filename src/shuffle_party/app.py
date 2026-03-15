@@ -33,6 +33,9 @@ class ShuffleParty:
         )
         self.lighting = Lighting(
             dmx_port=config.DMX_PORT or None,
+            audio_device=int(config.AUDIO_DEVICE) if config.AUDIO_DEVICE.isdigit() else (
+                config.AUDIO_DEVICE or None
+            ),
         )
         self.display = Display(set_duration=config.SET_DURATION_SECONDS)
         self.track_picker = TrackPicker(config.TRACKS_DIR)

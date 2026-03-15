@@ -6,6 +6,8 @@ requires-python = ">=3.12"
 dependencies = [
     "pygame-ce",
     "pyserial",
+    "sounddevice",
+    "numpy",
     "xair-api",
     "mutagen",
     "pyobjc-framework-cocoa>=12.1; sys_platform == 'darwin'",
