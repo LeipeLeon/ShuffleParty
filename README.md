@@ -124,12 +124,12 @@ Or use [Kid3](https://kid3.kde.org/) to edit `TXXX:FADEIN_MS` / `TXXX:FADEOUT_MS
 
 ![doc/shuffle-timing.json](doc/shuffle-timing.png)
 
-The system coordinates four output channels, driven by two state signals (`TIMER_STATE` and `TRACK_STATE`) and two pulse events (`TIMER_DONE` and `TRACK_DONE`):
+The system coordinates 2 stereo audio output channels and DMX lightning, all driven by two state signals (`TIMER_STATE` and `TRACK_STATE`) and two pulse events (`TIMER_DONE` and `TRACK_DONE`):
 
 - **Audio — DJ channel:** Controlled via OSC on a digital mixer (e.g. Behringer XR12). OSC over WiFi/Ethernet (UDP port 10023) — no USB MIDI interface needed.
 - **Audio — Shuffle track:** pygame.mixer plays an MP3 routed to a separate mixer channel. A random track is selected and pre-loaded during the DJ set, triggered by timer expiry.
-- **DMX — FX lights:** Music-reactive lighting. On during DJ set, off during shuffle. Controlled by [QLC+](https://www.qlcplus.org/), triggered via OSC from the Python process.
-- **DMX — Pin spots:** Mirrorball spots. Off during DJ set, on during shuffle. Also driven by QLC+ scenes.
+- **DMX — Pin spots:** DMX Mirrorball spots. Off during DJ set, on during shuffle.
+- **DMX — FX lights:** Showtec LED Par 56 Short DMX par spots. On during DJ set, off during shuffle.
 - **Screen:** A display/beamer showing either the countdown timer or the shuffle logo.
 
 ![](doc/shuffle-setup.png)
@@ -210,3 +210,19 @@ ShuffleParty/
 
 **Python wins** because [`xair-api`](https://pypi.org/project/xair-api/) gives direct fader control over the XR12 via WiFi, [QLC+](https://www.qlcplus.org/) handles all DMX fixture management and light show design (triggered via OSC), and `pygame` handles audio, display, and the control panel in a single process.
 
+## Docs:
+
+### Showtec LED Par 56 Short DMX
+
+DMX Channels
+
+- Channel 1 – Red
+- Channel 2 – Green
+- Channel 3 – Blue
+- Channel 4 – Full Color
+- Channel 5 – Strobe and Speed
+- Channel 6 – Modi
+  - Mode 1 - 0 - 63 RGB control
+  - Mode 2 - 64 – 127 7 color fade
+  - Mode 3 - 128 – 191 7 color change
+  - Mode 4 - 192 – 255 music-controlled
