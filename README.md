@@ -50,6 +50,45 @@ A second pygame window provides real-time controls:
 
 **Keyboard shortcut:** Cmd+F triggers the same action as the main button from either window.
 
+## MIDI Controllers
+
+The system supports Behringer X-TOUCH controllers for hands-on fader control. Both connect via USB MIDI to the Raspberry Pi (or Mac), and our app translates fader movements to OSC commands for the XR12.
+
+### X-TOUCH ONE — Master Volume
+
+The single motorized fader controls the XR12 master LR bus. The fader is bidirectional: it moves when volume changes from other sources (buttons, control panel UI).
+
+### X-TOUCH EXTENDER — Channel Volumes
+
+The 8 motorized faders map to XR12 input channels. Configured stereo pairs (DJ L+R and Shuffle L+R) are automatically combined onto a single fader:
+
+| Fader | XR12 Channels | Notes |
+|---|---|---|
+| 1 | 1 + 2 | Shuffle stereo pair (linked) |
+| 2 | 3 + 4 | DJ stereo pair (linked) |
+| 3 | 5 | |
+| 4 | 6 | |
+| ... | ... | Up to fader 8 |
+
+*(Fader assignment depends on your `DJ_CHANNEL_L/R` and `SHUFFLE_CHANNEL_L/R` config.)*
+
+During automated crossfades, the DJ and Shuffle faders move to track the fade progress. Manual adjustments override the automated levels.
+
+### Configuration
+
+Both controllers auto-detect by scanning MIDI port names. Override with environment variables if needed:
+
+```bash
+MIDI_PORT=X-TOUCH ONE          # or any substring of the MIDI port name
+MIDI_EXTENDER_PORT=X-TOUCH-EXT
+```
+
+### Why not connect the X-TOUCH directly to the XR12?
+
+The XR12 has MIDI DIN In/Out on the rear panel and supports Mackie Control protocol, so a direct connection is possible. However, routing through our app keeps the automated crossfade system in control — the motorized faders track state transitions and the app coordinates audio, lighting, and display in sync.
+
+The XR12's USB port is for flash drive recording only (no USB MIDI).
+
 ## reTerminal Buttons
 
 On a Seeed Studio reTerminal, the front-panel buttons are mapped as hardware controls:
@@ -126,7 +165,7 @@ Or use [Kid3](https://kid3.kde.org/) to edit `TXXX:FADEIN_MS` / `TXXX:FADEOUT_MS
 
 The system coordinates 2 stereo audio output channels and DMX lightning, all driven by two state signals (`TIMER_STATE` and `TRACK_STATE`) and two pulse events (`TIMER_DONE` and `TRACK_DONE`):
 
-- **Audio — DJ channel:** Controlled via OSC on a digital mixer (e.g. Behringer XR12). OSC over WiFi/Ethernet (UDP port 10023) — no USB MIDI interface needed.
+- **Audio — DJ channel:** Controlled via OSC on a digital mixer (e.g. Behringer XR12). OSC over WiFi/Ethernet (UDP port 10023). Optionally, X-TOUCH MIDI controllers provide hands-on fader control routed through the app.
 - **Audio — Shuffle track:** pygame.mixer plays an MP3 routed to a separate mixer channel. A random track is selected and pre-loaded during the DJ set, triggered by timer expiry.
 - **DMX — Pin spots:** DMX Mirrorball spots. Off during DJ set, on during shuffle.
 - **DMX — FX lights:** Showtec LED Par 56 Short DMX par spots. On during DJ set, off during shuffle.
@@ -182,8 +221,9 @@ ShuffleParty/
   │       ├── buttons.py           (reTerminal front-panel buttons via evdev)
   │       ├── config.py           (settings with .env overrides)
   │       ├── control_panel.py    (pygame control window: buttons, sliders, waveform)
-  │       ├── mixer.py            (XR12 OSC crossfade)
-  │       ├── lighting.py         (QLC+ OSC scenes)
+  │       ├── midi_controller.py  (X-TOUCH ONE + EXTENDER MIDI fader control)
+  │       ├── mixer.py            (XR12 OSC crossfade + channel volume)
+  │       ├── lighting.py         (Enttec DMX USB Pro: pin spots + audio-reactive pars)
   │       ├── display.py          (countdown timer logic)
   │       └── track_picker.py     (random MP3 selection)
   ├── scripts/
