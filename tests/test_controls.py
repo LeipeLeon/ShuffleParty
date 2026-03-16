@@ -1,6 +1,6 @@
 """Tests for control panel functionality."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from shuffle_party.display import Display
 from shuffle_party.mixer import Mixer
@@ -42,32 +42,26 @@ class TestDisplayDurationChange:
 
 class TestMasterVolume:
 
-    def _make_mixer(self, mock_xair):
-        mock_client = MagicMock()
-        mock_xair.connect.return_value = mock_client
-        with patch.dict("sys.modules", {"xair_api": mock_xair}):
-            with patch("shuffle_party.mixer.time"):
-                mixer = Mixer(
-                    host="x", port=1,
-                    dj_channels=[1, 2], shuffle_channels=[3, 4],
-                    fade_duration=1.0,
-                )
-        return mixer, mock_client
+    def _make_mixer(self):
+        backend = MagicMock()
+        mixer = Mixer(
+            backend=backend,
+            dj_channels=[1, 2], shuffle_channels=[3, 4],
+            fade_duration=1.0,
+        )
+        return mixer, backend
 
     def test_set_master_volume(self):
-        mock_xair = MagicMock()
-        mixer, client = self._make_mixer(mock_xair)
+        mixer, backend = self._make_mixer()
         mixer.set_master_volume(0.75)
-        client.send.assert_called_with("/lr/mix/fader", 0.75)
+        backend.send_master_fader.assert_called_with(0.75)
 
-    def test_set_master_volume_without_connection(self):
-        mock_xair = MagicMock()
-        mock_xair.connect.side_effect = ConnectionError()
-        with patch.dict("sys.modules", {"xair_api": mock_xair}):
-            mixer = Mixer(
-                host="x", port=1,
-                dj_channels=[1, 2], shuffle_channels=[3, 4],
-                fade_duration=1.0,
-            )
-        # Should not raise
+    def test_set_master_volume_with_null_backend(self):
+        """Should not raise with a no-op backend."""
+        from shuffle_party.mixer import NullBackend
+        mixer = Mixer(
+            backend=NullBackend(),
+            dj_channels=[1, 2], shuffle_channels=[3, 4],
+            fade_duration=1.0,
+        )
         mixer.set_master_volume(0.5)

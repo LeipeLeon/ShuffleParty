@@ -9,7 +9,7 @@ from enum import Enum, auto
 from shuffle_party import config
 from shuffle_party.display import Display
 from shuffle_party.lighting import Lighting
-from shuffle_party.mixer import Mixer
+from shuffle_party.mixer import MidiBackend, Mixer, NullBackend, OscBackend
 from shuffle_party.track_picker import TrackPicker
 
 
@@ -24,9 +24,14 @@ class ShuffleParty:
 
     def __init__(self) -> None:
         self.state = State.IDLE
+        if config.MIXER_BACKEND == "midi":
+            backend = MidiBackend(config.MIDI_MIXER_PORT)
+        elif config.MIXER_BACKEND == "osc":
+            backend = OscBackend(config.XR12_HOST, config.XR12_PORT)
+        else:
+            backend = NullBackend()
         self.mixer = Mixer(
-            host=config.XR12_HOST,
-            port=config.XR12_PORT,
+            backend=backend,
             dj_channels=[config.DJ_CHANNEL_L, config.DJ_CHANNEL_R],
             shuffle_channels=[config.SHUFFLE_CHANNEL_L, config.SHUFFLE_CHANNEL_R],
             fade_duration=config.FADE_DURATION_SECONDS,

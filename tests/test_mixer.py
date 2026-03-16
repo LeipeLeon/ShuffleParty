@@ -4,40 +4,23 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from shuffle_party.mixer import Mixer
+from shuffle_party.mixer import Mixer, NullBackend, OscBackend
 
 
 class TestMixer:
 
-    def _make_mixer(self, mock_xair=None, **kwargs):
-        """Create a Mixer with mocked xair_api and time."""
-        with patch.dict("sys.modules", {"xair_api": mock_xair or MagicMock()}):
-            return Mixer(
-                host=kwargs.get("host", "192.168.1.100"),
-                port=kwargs.get("port", 10023),
-                dj_channels=kwargs.get("dj_channels", [1, 2]),
-                shuffle_channels=kwargs.get("shuffle_channels", [3, 4]),
-                fade_duration=kwargs.get("fade_duration", 3.0),
-            )
-
-    def _run_fade_to_completion(self, mixer, mock_time):
-        """Simulate time passing to complete a fade."""
-        # Start at t=0, then jump past fade_duration
-        mock_time.monotonic.return_value = 0.0
-        mixer.tick()
-        mock_time.monotonic.return_value = mixer.fade_duration + 0.1
-        mixer.tick()
-
-    def _calls_for_channel(self, mock_client, channel_num):
-        """Extract OSC calls for a specific channel."""
-        addr = f"/ch/{channel_num:02d}/mix/fader"
-        return [c for c in mock_client.send.call_args_list if c.args[0] == addr]
+    def _make_mixer(self, backend=None, **kwargs):
+        """Create a Mixer with the given backend (defaults to MagicMock)."""
+        return Mixer(
+            backend=backend or MagicMock(),
+            dj_channels=kwargs.get("dj_channels", [1, 2]),
+            shuffle_channels=kwargs.get("shuffle_channels", [3, 4]),
+            fade_duration=kwargs.get("fade_duration", 3.0),
+        )
 
     def test_fade_out_starts_and_completes(self):
-        mock_xair = MagicMock()
-        mock_client = MagicMock()
-        mock_xair.connect.return_value = mock_client
-        mixer = self._make_mixer(mock_xair)
+        backend = MagicMock()
+        mixer = self._make_mixer(backend)
 
         with patch("shuffle_party.mixer.time") as mock_time:
             mock_time.monotonic.return_value = 0.0
@@ -53,10 +36,8 @@ class TestMixer:
             assert mixer.shuffle_level == pytest.approx(1.0)
 
     def test_fade_in_starts_and_completes(self):
-        mock_xair = MagicMock()
-        mock_client = MagicMock()
-        mock_xair.connect.return_value = mock_client
-        mixer = self._make_mixer(mock_xair)
+        backend = MagicMock()
+        mixer = self._make_mixer(backend)
 
         with patch("shuffle_party.mixer.time") as mock_time:
             mock_time.monotonic.return_value = 0.0
@@ -70,10 +51,8 @@ class TestMixer:
             assert mixer.shuffle_level == pytest.approx(0.0)
 
     def test_fade_midpoint_has_intermediate_values(self):
-        mock_xair = MagicMock()
-        mock_client = MagicMock()
-        mock_xair.connect.return_value = mock_client
-        mixer = self._make_mixer(mock_xair)
+        backend = MagicMock()
+        mixer = self._make_mixer(backend)
 
         with patch("shuffle_party.mixer.time") as mock_time:
             mock_time.monotonic.return_value = 0.0
@@ -85,48 +64,40 @@ class TestMixer:
             assert mixer.shuffle_level == pytest.approx(0.5)
 
     def test_fade_sends_to_all_four_channels(self):
-        mock_xair = MagicMock()
-        mock_client = MagicMock()
-        mock_xair.connect.return_value = mock_client
-        mixer = self._make_mixer(mock_xair)
+        backend = MagicMock()
+        mixer = self._make_mixer(backend)
 
         with patch("shuffle_party.mixer.time") as mock_time:
             mock_time.monotonic.return_value = 0.0
             mixer.fade_out()
 
-        addresses = set(c.args[0] for c in mock_client.send.call_args_list)
-        assert addresses == {
-            "/ch/01/mix/fader", "/ch/02/mix/fader",
-            "/ch/03/mix/fader", "/ch/04/mix/fader",
-        }
+        channels = set(c.args[0] for c in backend.send_channel_fader.call_args_list)
+        assert channels == {1, 2, 3, 4}
 
-    def test_channel_numbers_are_zero_padded(self):
-        mock_xair = MagicMock()
-        mock_client = MagicMock()
-        mock_xair.connect.return_value = mock_client
-        mixer = self._make_mixer(mock_xair, dj_channels=[5, 6], shuffle_channels=[9, 10])
+    def test_channel_numbers_passed_to_backend(self):
+        backend = MagicMock()
+        mixer = self._make_mixer(backend, dj_channels=[5, 6], shuffle_channels=[9, 10])
 
         with patch("shuffle_party.mixer.time") as mock_time:
             mock_time.monotonic.return_value = 0.0
             mixer.fade_out()
 
-        addresses = set(c.args[0] for c in mock_client.send.call_args_list)
-        assert addresses == {
-            "/ch/05/mix/fader", "/ch/06/mix/fader",
-            "/ch/09/mix/fader", "/ch/10/mix/fader",
-        }
+        channels = set(c.args[0] for c in backend.send_channel_fader.call_args_list)
+        assert channels == {5, 6, 9, 10}
 
-    def test_graceful_degradation_when_xr12_unreachable(self):
-        """Mixer should not crash when XR12 is unreachable."""
+    def test_osc_backend_formats_channel_addresses(self):
+        """OscBackend should send zero-padded /ch/NN/mix/fader addresses."""
         mock_xair = MagicMock()
-        mock_xair.connect.side_effect = ConnectionError("unreachable")
-
+        mock_client = MagicMock()
+        mock_xair.connect.return_value = mock_client
         with patch.dict("sys.modules", {"xair_api": mock_xair}):
-            mixer = Mixer(
-                host="x", port=1,
-                dj_channels=[1, 2], shuffle_channels=[3, 4],
-                fade_duration=1.0,
-            )
+            backend = OscBackend("192.168.1.100", 10023)
+        backend.send_channel_fader(5, 0.75)
+        mock_client.send.assert_called_with("/ch/05/mix/fader", 0.75)
+
+    def test_graceful_degradation_with_null_backend(self):
+        """Mixer should not crash with NullBackend."""
+        mixer = self._make_mixer(NullBackend())
 
         with patch("shuffle_party.mixer.time") as mock_time:
             mock_time.monotonic.return_value = 0.0

@@ -83,11 +83,28 @@ MIDI_PORT=X-TOUCH ONE          # or any substring of the MIDI port name
 MIDI_EXTENDER_PORT=X-TOUCH-EXT
 ```
 
-### Why not connect the X-TOUCH directly to the XR12?
+### Mixer backend: OSC vs MIDI
 
-The XR12 has MIDI DIN In/Out on the rear panel and supports Mackie Control protocol, so a direct connection is possible. However, routing through our app keeps the automated crossfade system in control — the motorized faders track state transitions and the app coordinates audio, lighting, and display in sync.
+The XR12 can be controlled over the network (OSC) or via a USB-to-MIDI DIN adapter cable. Set `MIXER_BACKEND` to choose:
 
-The XR12's USB port is for flash drive recording only (no USB MIDI).
+| | **OSC** (default) | **MIDI** |
+|---|---|---|
+| Connection | WiFi/Ethernet | USB-MIDI adapter → DIN cable |
+| Resolution | Float (0.0–1.0) | 7-bit (0–127) |
+| Extra hardware | None | USB-MIDI DIN adapter (~$10) |
+| Network required | Yes | No |
+
+```bash
+# OSC (default) — requires network
+MIXER_BACKEND=osc
+XR12_HOST=192.168.1.100
+
+# MIDI — no network needed, just a USB-MIDI DIN adapter
+MIXER_BACKEND=midi
+MIDI_MIXER_PORT=              # auto-detects, skipping X-TOUCH ports
+```
+
+The X-TOUCH ONE and EXTENDER don't have MIDI DIN ports (USB only), so they always connect via USB to the Pi regardless of which backend controls the XR12.
 
 ## reTerminal Buttons
 
@@ -165,7 +182,7 @@ Or use [Kid3](https://kid3.kde.org/) to edit `TXXX:FADEIN_MS` / `TXXX:FADEOUT_MS
 
 The system coordinates 2 stereo audio output channels and DMX lightning, all driven by two state signals (`TIMER_STATE` and `TRACK_STATE`) and two pulse events (`TIMER_DONE` and `TRACK_DONE`):
 
-- **Audio — DJ channel:** Controlled via OSC on a digital mixer (e.g. Behringer XR12). OSC over WiFi/Ethernet (UDP port 10023). Optionally, X-TOUCH MIDI controllers provide hands-on fader control routed through the app.
+- **Audio — DJ channel:** Controlled on the Behringer XR12 via OSC (WiFi/Ethernet) or MIDI CC (USB-MIDI DIN adapter). X-TOUCH controllers provide hands-on fader control routed through the app.
 - **Audio — Shuffle track:** pygame.mixer plays an MP3 routed to a separate mixer channel. A random track is selected and pre-loaded during the DJ set, triggered by timer expiry.
 - **DMX — Pin spots:** DMX Mirrorball spots. Off during DJ set, on during shuffle.
 - **DMX — FX lights:** Showtec LED Par 56 Short DMX par spots. On during DJ set, off during shuffle.
@@ -222,7 +239,7 @@ ShuffleParty/
   │       ├── config.py           (settings with .env overrides)
   │       ├── control_panel.py    (pygame control window: buttons, sliders, waveform)
   │       ├── midi_controller.py  (X-TOUCH ONE + EXTENDER MIDI fader control)
-  │       ├── mixer.py            (XR12 OSC crossfade + channel volume)
+  │       ├── mixer.py            (XR12 crossfade + channel volume, OSC/MIDI backends)
   │       ├── lighting.py         (Enttec DMX USB Pro: pin spots + audio-reactive pars)
   │       ├── display.py          (countdown timer logic)
   │       └── track_picker.py     (random MP3 selection)

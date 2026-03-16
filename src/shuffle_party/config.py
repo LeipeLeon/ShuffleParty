@@ -11,9 +11,11 @@ SET_DURATION_SECONDS = int(os.environ.get("SET_DURATION_SECONDS", 15 * 60))
 FADE_DURATION_SECONDS = float(os.environ.get("FADE_DURATION_SECONDS", 3.0))
 CROSSFADE_DURATION_SECONDS = float(os.environ.get("CROSSFADE_DURATION_SECONDS", 3.0))
 
-# Behringer XR12 mixer (OSC over WiFi/Ethernet)
+# Behringer XR12 mixer
+MIXER_BACKEND = os.environ.get("MIXER_BACKEND", "osc")  # "osc" or "midi"
 XR12_HOST = os.environ.get("XR12_HOST", "192.168.1.100")
 XR12_PORT = int(os.environ.get("XR12_PORT", 10023))
+MIDI_MIXER_PORT = os.environ.get("MIDI_MIXER_PORT", "")  # USB-MIDI adapter, auto-detect if empty
 DJ_CHANNEL_L = int(os.environ.get("DJ_CHANNEL_L", 3))
 DJ_CHANNEL_R = int(os.environ.get("DJ_CHANNEL_R", 4))
 SHUFFLE_CHANNEL_L = int(os.environ.get("SHUFFLE_CHANNEL_L", 1))
