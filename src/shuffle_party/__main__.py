@@ -17,6 +17,7 @@ from shuffle_party import config
 from shuffle_party.app import ShuffleParty, State
 from shuffle_party.buttons import Buttons
 from shuffle_party.control_panel import ControlPanel
+from shuffle_party.midi_controller import MidiController
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -116,6 +117,7 @@ def run() -> None:
         volume_step=config.VOLUME_STEP,
     )
     buttons = Buttons(config.BUTTON_DEVICE)
+    midi = MidiController(config.MIDI_PORT)
 
     # Set up the music end event so we detect when shuffle tracks finish
     pygame.mixer.music.set_endevent(SHUFFLE_TRACK_END)
@@ -195,6 +197,14 @@ def run() -> None:
                     control._fade_out_now = True
                 elif party.state == State.IDLE:
                     control._start_dj = True
+
+        # Poll X-TOUCH ONE fader
+        fader_value = midi.poll()
+        if fader_value is not None:
+            control.set_volume(fader_value)
+        elif midi.available:
+            # Sync motorized fader when volume changes from other sources
+            midi.set_fader(control._volume_value)
 
         # Handle start DJ button (IDLE -> DJ_SET)
         if control.should_start_dj() and party.state == State.IDLE:
@@ -313,6 +323,7 @@ def run() -> None:
         clock.tick(30)
 
     buttons.close()
+    midi.close()
     party.lighting.close()
     pygame.quit()
     sys.exit()

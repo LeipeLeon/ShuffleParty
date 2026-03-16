@@ -344,6 +344,11 @@ class ControlPanel:
         self._volume_value = max(0.0, min(1.0, round(self._volume_value + delta, 2)))
         self.party.mixer.set_master_volume(self._volume_value)
 
+    def set_volume(self, value: float) -> None:
+        """Set master volume to an absolute value (0.0–1.0)."""
+        self._volume_value = max(0.0, min(1.0, round(value, 2)))
+        self.party.mixer.set_master_volume(self._volume_value)
+
     def _update_volume_slider(self, mouse_y: int) -> None:
         rect = self._vol_slider_rect
         # Invert: top of rect = 1.0, bottom = 0.0
