@@ -109,6 +109,19 @@ class Mixer:
         self.dj_level = 1.0
         self.shuffle_level = 0.0
 
+    def set_channel_volume(self, channels: list[int], value: float) -> None:
+        """Set the fader for one or more XR12 channels (0.0–1.0).
+
+        Also updates dj_level / shuffle_level if the channels match.
+        """
+        if self._client is not None:
+            for ch in channels:
+                self._client.send(f"/ch/{ch:02d}/mix/fader", value)
+        if set(channels) == set(self.dj_channels):
+            self.dj_level = value
+        elif set(channels) == set(self.shuffle_channels):
+            self.shuffle_level = value
+
     def set_master_volume(self, value: float) -> None:
         """Set the main LR fader (0.0–1.0)."""
         if self._client is None:

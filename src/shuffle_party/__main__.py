@@ -17,7 +17,7 @@ from shuffle_party import config
 from shuffle_party.app import ShuffleParty, State
 from shuffle_party.buttons import Buttons
 from shuffle_party.control_panel import ControlPanel
-from shuffle_party.midi_controller import MidiController
+from shuffle_party.midi_controller import MidiController, MidiExtender, build_channel_map
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -118,6 +118,11 @@ def run() -> None:
     )
     buttons = Buttons(config.BUTTON_DEVICE)
     midi = MidiController(config.MIDI_PORT)
+    channel_map = build_channel_map(
+        dj_channels=[config.DJ_CHANNEL_L, config.DJ_CHANNEL_R],
+        shuffle_channels=[config.SHUFFLE_CHANNEL_L, config.SHUFFLE_CHANNEL_R],
+    )
+    extender = MidiExtender(config.MIDI_EXTENDER_PORT, channel_map)
 
     # Set up the music end event so we detect when shuffle tracks finish
     pygame.mixer.music.set_endevent(SHUFFLE_TRACK_END)
@@ -198,13 +203,25 @@ def run() -> None:
                 elif party.state == State.IDLE:
                     control._start_dj = True
 
-        # Poll X-TOUCH ONE fader
+        # Poll X-TOUCH ONE fader (master volume)
         fader_value = midi.poll()
         if fader_value is not None:
             control.set_volume(fader_value)
         elif midi.available:
-            # Sync motorized fader when volume changes from other sources
             midi.set_fader(control._volume_value)
+
+        # Poll X-TOUCH EXTENDER faders (channel volumes)
+        for fader_idx, value in extender.poll().items():
+            channels = extender.channel_map[fader_idx]
+            party.mixer.set_channel_volume(channels, value)
+        if extender.available:
+            # Sync motorized faders with crossfade state
+            dj_idx = extender.fader_index_for_channels(party.mixer.dj_channels)
+            if dj_idx is not None:
+                extender.set_fader(dj_idx, party.mixer.dj_level)
+            sh_idx = extender.fader_index_for_channels(party.mixer.shuffle_channels)
+            if sh_idx is not None:
+                extender.set_fader(sh_idx, party.mixer.shuffle_level)
 
         # Handle start DJ button (IDLE -> DJ_SET)
         if control.should_start_dj() and party.state == State.IDLE:
@@ -324,6 +341,7 @@ def run() -> None:
 
     buttons.close()
     midi.close()
+    extender.close()
     party.lighting.close()
     pygame.quit()
     sys.exit()
