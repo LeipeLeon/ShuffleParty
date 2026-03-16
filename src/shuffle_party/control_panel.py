@@ -43,15 +43,12 @@ class ControlPanel:
     """Pygame-based control panel in a second window."""
 
     def __init__(
-        self, party, fullscreen: bool = False, display_index: int | None = None,
+        self, party, fullscreen: bool = False,
         volume_step: float = 0.05,
     ) -> None:
         self.party = party
-        kwargs: dict = {}
-        if display_index is not None:
-            kwargs["display_index"] = display_index
         self.window = pygame.Window(
-            "Shuffle Partey — Controls", size=(WIDTH, HEIGHT), **kwargs,
+            "Shuffle Partey — Controls", size=(WIDTH, HEIGHT),
         )
         if fullscreen:
             self.window.set_fullscreen(True)

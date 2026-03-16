@@ -76,9 +76,11 @@ def run() -> None:
     display_window = None
     if multi_display:
         # Timer fullscreen on external HDMI (display 1)
+        # Position on second display by offsetting past the primary display width
         display_window = pygame.Window(
-            "Shuffle Partey", size=(1920, 1080), display_index=1,
+            "Shuffle Partey", size=pygame.display.get_desktop_sizes()[1],
         )
+        display_window.position = (pygame.display.get_desktop_sizes()[0][0], 0)
         display_window.set_fullscreen(True)
 
     clock = pygame.time.Clock()
@@ -111,7 +113,6 @@ def run() -> None:
     control = ControlPanel(
         party,
         fullscreen=multi_display or is_reterminal,
-        display_index=0 if multi_display else None,
         volume_step=config.VOLUME_STEP,
     )
     buttons = Buttons(config.BUTTON_DEVICE)
