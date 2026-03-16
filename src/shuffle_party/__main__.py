@@ -293,7 +293,7 @@ def run() -> None:
 
             # Draw timer layer
             if timer_alpha > 0:
-                target_size = int(h * 0.7)
+                target_size = min(int(h * 0.7), int(w * 0.35))
                 if display_font is None or display_font_size != target_size:
                     display_font = pygame.font.SysFont(
                         "SF Mono,DejaVu Sans Mono,Consolas,monospace", target_size,
