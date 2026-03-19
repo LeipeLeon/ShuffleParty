@@ -6,6 +6,7 @@ and channel levels. Runs in the same process as the main display.
 
 import io
 import logging
+import math
 import os
 import struct
 import subprocess
@@ -72,6 +73,8 @@ class ControlPanel:
         # Track metadata
         self._track_display = "No track loaded"
         self._track_name = ""
+        self._track_gain: float | None = None
+        self._track_lufs: float | None = None
         self._duration_ms = 0
         self._fadeout_cue_ms = -1
         self._waveform: list[float] = []
@@ -339,6 +342,11 @@ class ControlPanel:
             elif self._dragging == "volume":
                 self._update_volume_slider(y)
 
+    def set_track_gain(self, gain: float, lufs: float | None = None) -> None:
+        """Set the loudness normalization gain for the current track."""
+        self._track_gain = gain
+        self._track_lufs = lufs
+
     def nudge_volume(self, delta: float) -> None:
         """Adjust master volume by delta (e.g. +0.05 or -0.05), clamped to 0.0–1.0."""
         self._volume_value = max(0.0, min(1.0, round(self._volume_value + delta, 2)))
@@ -423,6 +431,9 @@ class ControlPanel:
         if self._fadeout_cue_ms >= 0:
             s = self._fadeout_cue_ms // 1000
             cue_parts.append(f"Out: {s // 60}:{s % 60:02d}")
+        if self._track_lufs is not None:
+            db = 20 * math.log10(self._track_gain) if self._track_gain and self._track_gain > 0 else float("-inf")
+            cue_parts.append(f"{self._track_lufs:+.1f} LUFS ({db:+.1f} dB)")
         if cue_parts:
             cue_text = self._font_small.render("  ".join(cue_parts), True, TEXT_DIM)
             surf.blit(cue_text, (100, y + 38))

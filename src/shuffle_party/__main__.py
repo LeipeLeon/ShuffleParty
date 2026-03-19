@@ -50,6 +50,7 @@ def preload_track(party, control) -> float:
         if lufs is not None:
             gain = gain_for_target(lufs)
             logging.info("Track %.1f LUFS → gain %.2f: %s", lufs, gain, os.path.basename(track))
+        control.set_track_gain(gain, lufs)
         try:
             pygame.mixer.music.load(track)
             pygame.mixer.music.set_volume(0.0)
