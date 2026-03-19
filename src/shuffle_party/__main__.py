@@ -17,6 +17,7 @@ from shuffle_party import config
 from shuffle_party.app import ShuffleParty, State
 from shuffle_party.buttons import Buttons
 from shuffle_party.control_panel import ControlPanel
+from shuffle_party.loudness import gain_for_target, measure_lufs
 from shuffle_party.midi_controller import MidiExtender, build_channel_map
 
 logging.basicConfig(
@@ -35,18 +36,27 @@ TIMER_COLOR = (255, 255, 255)
 CROSSFADE_DURATION = config.CROSSFADE_DURATION_SECONDS
 
 
-def preload_track(party, control) -> None:
-    """Pick the next track, load it into pygame, and show it on the control panel."""
+def preload_track(party, control) -> float:
+    """Pick the next track, load it into pygame, and show it on the control panel.
+
+    Returns a volume gain factor (0.0–1.0) for loudness normalization to -16 LUFS.
+    """
     track = party.track_picker.pick()
     party.pending_track = track
+    gain = 1.0
     if track:
         control.set_track_name(track)
+        lufs = measure_lufs(track)
+        if lufs is not None:
+            gain = gain_for_target(lufs)
+            logging.info("Track %.1f LUFS → gain %.2f: %s", lufs, gain, os.path.basename(track))
         try:
             pygame.mixer.music.load(track)
             pygame.mixer.music.set_volume(0.0)
         except Exception as e:
             logging.warning(f"Could not pre-load {track} — {e!r}")
             party.pending_track = None
+    return gain
 
 
 def start_shuffle(party, control) -> None:
@@ -145,7 +155,7 @@ def run() -> None:
     pygame.time.set_timer(TIMER_TICK, 1000)
 
     # Pre-load the first shuffle track
-    preload_track(party, control)
+    track_gain = preload_track(party, control)
 
     # Start in IDLE — show logo, wait for "Start DJ Set" button
 
@@ -197,7 +207,7 @@ def run() -> None:
             if party.state == State.DJ_SET:
                 pygame.mixer.music.stop()
                 if track_played:
-                    preload_track(party, control)
+                    track_gain = preload_track(party, control)
                     track_played = False
 
         # Update control panel (fadeout cue check)
@@ -241,7 +251,7 @@ def run() -> None:
 
         # Handle skip track button (load a different track during DJ_SET)
         if control.should_skip_track() and party.state == State.DJ_SET:
-            preload_track(party, control)
+            track_gain = preload_track(party, control)
 
         # Handle fade out now button
         if control.should_fade_out_now():
@@ -258,7 +268,7 @@ def run() -> None:
             crossfading = False
             fade_t = 1.0
             track_played = False
-            preload_track(party, control)
+            track_gain = preload_track(party, control)
 
         # Detect state change and start visual crossfade
         if party.state != prev_state:
@@ -290,12 +300,12 @@ def run() -> None:
         else:
             party.lighting.tick()
 
-        # Crossfade the shuffle track audio volume
+        # Crossfade the shuffle track audio volume (with loudness normalization)
         if crossfading and pygame.mixer.music.get_busy():
             if party.state == State.SHUFFLE:
-                pygame.mixer.music.set_volume(fade_t)
+                pygame.mixer.music.set_volume(fade_t * track_gain)
             else:
-                pygame.mixer.music.set_volume(1.0 - fade_t)
+                pygame.mixer.music.set_volume((1.0 - fade_t) * track_gain)
 
         # -- Render display window (only if second screen attached) --
         if display_window is not None:
