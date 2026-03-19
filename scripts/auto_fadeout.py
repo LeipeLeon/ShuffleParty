@@ -245,7 +245,9 @@ def generate_image(
         draw.line([(cue_x, 0), (cue_x, IMG_HEIGHT)], fill=FADEOUT_COLOR, width=2)
         cue_sec = fadeout_window * WINDOW_SEC
         cue_label = f"{int(cue_sec) // 60}:{int(cue_sec) % 60:02d}"
-        draw.text((cue_x + 4, 2), cue_label, fill=FADEOUT_COLOR, font=font)
+        bbox = draw.textbbox((0, 0), cue_label, font=font)
+        label_w = bbox[2] - bbox[0]
+        draw.text((cue_x - label_w - 4, 2), cue_label, fill=FADEOUT_COLOR, font=font)
 
     # Title
     title = os.path.basename(path)
