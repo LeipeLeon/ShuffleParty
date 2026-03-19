@@ -40,12 +40,19 @@ class TestMixer:
         mixer = self._make_mixer(backend)
 
         with patch("shuffle_party.mixer.time") as mock_time:
+            # First fade out so shuffle_level reaches 1.0
             mock_time.monotonic.return_value = 0.0
+            mixer.fade_out()
+            mock_time.monotonic.return_value = mixer.fade_duration + 0.1
+            mixer.tick()
+
+            # Now fade back in
+            mock_time.monotonic.return_value = 10.0
             mixer.fade_in()
             assert mixer.dj_level == pytest.approx(0.0)
             assert mixer.shuffle_level == pytest.approx(1.0)
 
-            mock_time.monotonic.return_value = mixer.fade_duration + 0.1
+            mock_time.monotonic.return_value = 10.0 + mixer.fade_duration + 0.1
             mixer.tick()
             assert mixer.dj_level == pytest.approx(1.0)
             assert mixer.shuffle_level == pytest.approx(0.0)

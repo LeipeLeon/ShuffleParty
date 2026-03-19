@@ -268,19 +268,22 @@ class Mixer:
         self.fade_duration = fade_duration
         self.dj_level = 1.0
         self.shuffle_level = 0.0
+        self.shuffle_gain = 1.0  # loudness normalization gain for current track
         self._fade: dict[str, float] | None = None
 
     def fade_out(self) -> None:
         """Start crossfade: DJ channels down, shuffle channels up."""
-        logger.info("Fade out: DJ 1.0→0.0, Shuffle 0.0→1.0 over %.1fs",
-                     self.fade_duration)
-        self._start_fade(dj_start=1.0, dj_end=0.0, shuffle_start=0.0, shuffle_end=1.0)
+        target = self.shuffle_gain
+        logger.info("Fade out: DJ 1.0→0.0, Shuffle 0.0→%.2f over %.1fs",
+                     target, self.fade_duration)
+        self._start_fade(dj_start=1.0, dj_end=0.0, shuffle_start=0.0, shuffle_end=target)
 
     def fade_in(self) -> None:
         """Start crossfade: shuffle channels down, DJ channels up."""
-        logger.info("Fade in: DJ 0.0→1.0, Shuffle 1.0→0.0 over %.1fs",
-                     self.fade_duration)
-        self._start_fade(dj_start=0.0, dj_end=1.0, shuffle_start=1.0, shuffle_end=0.0)
+        current = self.shuffle_level
+        logger.info("Fade in: DJ 0.0→1.0, Shuffle %.2f→0.0 over %.1fs",
+                     current, self.fade_duration)
+        self._start_fade(dj_start=0.0, dj_end=1.0, shuffle_start=current, shuffle_end=0.0)
 
     def _start_fade(
         self,
