@@ -131,7 +131,7 @@ class MidiExtender:
         self._levels: list[float] = [0.0] * len(channel_map)
         self._master_last_sent: int | None = None
 
-        mido, inport, outport = _open_ports(port_name, "x-touch ext", "X-TOUCH EXTENDER")
+        mido, inport, outport = _open_ports(port_name, "x-touch-ext", "X-TOUCH EXTENDER")
         if inport is None:
             return
         self._mido = mido

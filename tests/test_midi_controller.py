@@ -21,8 +21,7 @@ def test_find_port_by_hint():
 
 def test_find_port_by_keyword():
     names = ["X-Touch-Ext X-TOUCH_INT", "USB MIDI Interface"]
-    # keyword must match as substring of lowered name: "x-touch-ext" contains "x-touch"
-    assert _find_port(names, "", "x-touch") == "X-Touch-Ext X-TOUCH_INT"
+    assert _find_port(names, "", "x-touch-ext") == "X-Touch-Ext X-TOUCH_INT"
 
 
 def test_find_port_no_match():
