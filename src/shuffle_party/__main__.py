@@ -121,7 +121,10 @@ def run() -> None:
         dj_channels=[config.DJ_CHANNEL_L, config.DJ_CHANNEL_R],
         shuffle_channels=[config.SHUFFLE_CHANNEL_L, config.SHUFFLE_CHANNEL_R],
     )
-    extender = MidiExtender(config.MIDI_EXTENDER_PORT, channel_map)
+    extender = MidiExtender(
+        config.MIDI_EXTENDER_PORT, channel_map,
+        network_host=config.MIDI_EXTENDER_HOST,
+    )
 
     # Set up the music end event so we detect when shuffle tracks finish
     pygame.mixer.music.set_endevent(SHUFFLE_TRACK_END)

@@ -26,7 +26,8 @@ DMX_PORT = os.environ.get("DMX_PORT", "")  # auto-detect if empty
 AUDIO_DEVICE = os.environ.get("AUDIO_DEVICE", "")  # auto-detect if empty
 
 # MIDI controller (Behringer X-TOUCH EXTENDER)
-MIDI_EXTENDER_PORT = os.environ.get("MIDI_EXTENDER_PORT", "")  # auto-detect if empty
+MIDI_EXTENDER_PORT = os.environ.get("MIDI_EXTENDER_PORT", "")  # USB auto-detect if empty
+MIDI_EXTENDER_HOST = os.environ.get("MIDI_EXTENDER_HOST", "")  # RTP-MIDI over network
 
 # reTerminal buttons (evdev)
 BUTTON_DEVICE = os.environ.get("BUTTON_DEVICE", "/dev/input/event0")
