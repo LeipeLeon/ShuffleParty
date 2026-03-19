@@ -1,9 +1,9 @@
-"""Behringer X-TOUCH MIDI controller support.
+"""Behringer X-TOUCH EXTENDER MIDI controller support.
 
-Supports the X-TOUCH ONE (single fader → master volume) and the X-TOUCH
-EXTENDER (8 faders → XR12 channel volumes). Both use the Mackie Control
-Universal (MCU) protocol: motorized faders send/receive pitchbend messages
-on MIDI channels 0–7.
+Uses all 8 faders via the Mackie Control Universal (MCU) protocol:
+faders 1–7 (channels 0–6) control XR12 channel volumes, and fader 8
+(channel 7) controls master volume. Motorized faders send/receive
+pitchbend messages on MIDI channels 0–7.
 """
 
 from __future__ import annotations
@@ -70,64 +70,7 @@ def _open_ports(
     return mido, inport, outport
 
 
-class MidiController:
-    """Non-blocking reader for the X-TOUCH ONE fader via MIDI.
-
-    Maps the single fader to master volume.
-    """
-
-    def __init__(self, port_name: str = "") -> None:
-        self._mido = None
-        self._inport = None
-        self._outport = None
-        self._available = False
-        self._last_sent: int | None = None
-
-        mido, inport, outport = _open_ports(port_name, "x-touch one", "X-TOUCH ONE")
-        if inport is None:
-            return
-        self._mido = mido
-        self._inport = inport
-        self._outport = outport
-        self._available = True
-
-    @property
-    def available(self) -> bool:
-        return self._available
-
-    def poll(self) -> float | None:
-        """Return the latest fader value (0.0–1.0), or None if no change."""
-        if not self._available or self._inport is None:
-            return None
-
-        latest: float | None = None
-        for msg in self._inport.iter_pending():
-            if msg.type == "pitchwheel" and msg.channel == 0:
-                raw = msg.pitch + 8192
-                if self._last_sent is not None and raw == self._last_sent:
-                    self._last_sent = None
-                    continue
-                latest = raw / _FADER_MAX
-
-        return latest
-
-    def set_fader(self, value: float) -> None:
-        """Move the motorized fader to match the given volume (0.0–1.0)."""
-        if self._outport is None or self._mido is None:
-            return
-        raw = int(max(0.0, min(1.0, value)) * _FADER_MAX)
-        self._last_sent = raw
-        pitch = raw - 8192
-        self._outport.send(self._mido.Message("pitchwheel", channel=0, pitch=pitch))
-
-    def close(self) -> None:
-        if self._inport is not None:
-            self._inport.close()
-            self._inport = None
-        if self._outport is not None:
-            self._outport.close()
-            self._outport = None
-        self._available = False
+_MASTER_FADER = 7  # MCU channel index for master volume (fader 8)
 
 
 def build_channel_map(
@@ -137,9 +80,10 @@ def build_channel_map(
 ) -> list[list[int]]:
     """Build a fader-to-XR12-channel map, combining stereo pairs.
 
-    Returns a list of up to 8 entries (one per extender fader), each a list
-    of XR12 channel numbers controlled by that fader. Configured stereo pairs
-    (DJ L+R, Shuffle L+R) share a single fader; remaining channels get one each.
+    Returns a list of up to 7 entries (faders 1–7), each a list of XR12
+    channel numbers controlled by that fader. Fader 8 is reserved for master
+    volume. Configured stereo pairs (DJ L+R, Shuffle L+R) share a single
+    fader; remaining channels get one each.
 
     Channels are ordered numerically, pairs sorted by their lowest channel.
     """
@@ -159,7 +103,7 @@ def build_channel_map(
                 result.append(pairs[ch])
         else:
             result.append([ch])
-        if len(result) >= 8:
+        if len(result) >= _MASTER_FADER:
             break
 
     return result
@@ -168,8 +112,9 @@ def build_channel_map(
 class MidiExtender:
     """Non-blocking reader for the X-TOUCH EXTENDER (8 faders) via MIDI.
 
-    Maps each fader to one or more XR12 channels. Configured stereo pairs
-    (DJ L+R and Shuffle L+R) are combined onto a single fader.
+    Faders 1–7 (channels 0–6) map to XR12 channels. Fader 8 (channel 7)
+    controls master volume. Configured stereo pairs (DJ L+R and Shuffle L+R)
+    are combined onto a single fader.
     """
 
     def __init__(
@@ -184,6 +129,7 @@ class MidiExtender:
         self._channel_map = channel_map
         self._last_sent: dict[int, int] = {}  # fader_index -> last raw value sent
         self._levels: list[float] = [0.0] * len(channel_map)
+        self._master_last_sent: int | None = None
 
         mido, inport, outport = _open_ports(port_name, "x-touch ext", "X-TOUCH EXTENDER")
         if inport is None:
@@ -201,16 +147,27 @@ class MidiExtender:
     def channel_map(self) -> list[list[int]]:
         return self._channel_map
 
-    def poll(self) -> dict[int, float]:
-        """Return {fader_index: value} for any faders that changed since last poll."""
+    def poll(self) -> tuple[dict[int, float], float | None]:
+        """Return ({fader_index: value}, master_value) for any faders that changed.
+
+        master_value is the fader 8 position (0.0–1.0), or None if unchanged.
+        """
         if not self._available or self._inport is None:
-            return {}
+            return {}, None
 
         changed: dict[int, float] = {}
+        master: float | None = None
         for msg in self._inport.iter_pending():
-            if msg.type == "pitchwheel" and 0 <= msg.channel < len(self._channel_map):
+            if msg.type != "pitchwheel":
+                continue
+            raw = msg.pitch + 8192
+            if msg.channel == _MASTER_FADER:
+                if self._master_last_sent is not None and raw == self._master_last_sent:
+                    self._master_last_sent = None
+                    continue
+                master = raw / _FADER_MAX
+            elif 0 <= msg.channel < len(self._channel_map):
                 idx = msg.channel
-                raw = msg.pitch + 8192
                 if self._last_sent.get(idx) == raw:
                     del self._last_sent[idx]
                     continue
@@ -218,7 +175,7 @@ class MidiExtender:
                 self._levels[idx] = value
                 changed[idx] = value
 
-        return changed
+        return changed, master
 
     def set_fader(self, index: int, value: float) -> None:
         """Move a motorized fader to the given position (0.0–1.0)."""
@@ -230,6 +187,15 @@ class MidiExtender:
         self._last_sent[index] = raw
         pitch = raw - 8192
         self._outport.send(self._mido.Message("pitchwheel", channel=index, pitch=pitch))
+
+    def set_master_fader(self, value: float) -> None:
+        """Move the master fader (fader 8) to the given position (0.0–1.0)."""
+        if self._outport is None or self._mido is None:
+            return
+        raw = int(max(0.0, min(1.0, value)) * _FADER_MAX)
+        self._master_last_sent = raw
+        pitch = raw - 8192
+        self._outport.send(self._mido.Message("pitchwheel", channel=_MASTER_FADER, pitch=pitch))
 
     def fader_index_for_channels(self, channels: list[int]) -> int | None:
         """Find the fader index that controls the given XR12 channels."""

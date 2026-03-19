@@ -25,8 +25,7 @@ SHUFFLE_CHANNEL_R = int(os.environ.get("SHUFFLE_CHANNEL_R", 2))
 DMX_PORT = os.environ.get("DMX_PORT", "")  # auto-detect if empty
 AUDIO_DEVICE = os.environ.get("AUDIO_DEVICE", "")  # auto-detect if empty
 
-# MIDI controllers (Behringer X-TOUCH ONE / EXTENDER)
-MIDI_PORT = os.environ.get("MIDI_PORT", "")  # auto-detect if empty
+# MIDI controller (Behringer X-TOUCH EXTENDER)
 MIDI_EXTENDER_PORT = os.environ.get("MIDI_EXTENDER_PORT", "")  # auto-detect if empty
 
 # reTerminal buttons (evdev)
