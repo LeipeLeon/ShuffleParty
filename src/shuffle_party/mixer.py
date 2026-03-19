@@ -29,26 +29,58 @@ class MixerBackend(Protocol):
 
 
 class OscBackend:
-    """XR12 control via OSC over WiFi/Ethernet (xair_api)."""
+    """XR12 control via OSC over WiFi/Ethernet (xair_api).
+
+    Automatically reconnects when the XR12 becomes unreachable.
+    """
+
+    _RECONNECT_INTERVAL = 5.0  # seconds between reconnection attempts
 
     def __init__(self, host: str, port: int) -> None:
+        self._host = host
+        self._port = port
+        self._client = None
+        self._last_reconnect = 0.0
+        self._connect()
+
+    def _connect(self) -> None:
+        """Attempt to create the xair_api client."""
         self._client = None
         try:
             import xair_api  # type: ignore[import-untyped]
 
-            self._client = xair_api.connect("XR12", ip=host, port=port)
-            logger.info("XR12 OSC backend connected at %s:%d", host, port)
+            self._client = xair_api.connect("XR12", ip=self._host, port=self._port)
+            logger.info("XR12 OSC backend connected at %s:%d", self._host, self._port)
         except Exception as e:
-            logger.warning("XR12 unreachable at %s:%d — %r", host, port, e)
-            logger.warning("Continuing without mixer control.")
+            logger.warning("XR12 unreachable at %s:%d — %r", self._host, self._port, e)
+
+    def _reconnect_if_needed(self) -> None:
+        """Try to reconnect if client is down and enough time has passed."""
+        if self._client is not None:
+            return
+        now = time.monotonic()
+        if now - self._last_reconnect < self._RECONNECT_INTERVAL:
+            return
+        self._last_reconnect = now
+        logger.info("Attempting XR12 reconnect...")
+        self._connect()
+
+    def _send(self, address: str, value: float) -> None:
+        """Send an OSC message, reconnecting on failure."""
+        self._reconnect_if_needed()
+        if self._client is None:
+            return
+        try:
+            self._client.send(address, value)
+        except Exception:
+            logger.warning("XR12 send failed — will reconnect.")
+            self._client = None
 
     def send_channel_fader(self, channel: int, value: float) -> None:
-        if self._client is not None:
-            self._client.send(f"/ch/{channel:02d}/mix/fader", value)
+        self._send(f"/ch/{channel:02d}/mix/fader", value)
 
     def send_master_fader(self, value: float) -> None:
-        if self._client is not None:
-            self._client.send("/lr/mix/fader", value)
+        self._send("/lr/mix/fader", value)
 
 
 class MidiBackend:
