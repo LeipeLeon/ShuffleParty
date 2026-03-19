@@ -261,7 +261,7 @@ def generate_image(
         lufs_label = f"{lufs:+.1f} LUFS"
         bbox = draw.textbbox((0, 0), lufs_label, font=title_font)
         lufs_w = bbox[2] - bbox[0]
-        draw.text((IMG_WIDTH - lufs_w - 6, 2), lufs_label, fill=TEXT_COLOR, font=title_font)
+        draw.text(((IMG_WIDTH - lufs_w) // 2, 2), lufs_label, fill=TEXT_COLOR, font=title_font)
 
     img.save(out_path)
 
