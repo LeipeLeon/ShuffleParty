@@ -10,10 +10,41 @@ communication with the XR12 is delegated to a backend (OSC or MIDI).
 from __future__ import annotations
 
 import logging
+import socket
+import struct
 import time
 from typing import Protocol
 
 logger = logging.getLogger(__name__)
+
+
+def _osc_string(s: str) -> bytes:
+    """Encode a string with OSC null-padding."""
+    b = s.encode() + b"\x00"
+    b += b"\x00" * ((4 - len(b) % 4) % 4)
+    return b
+
+
+def _osc_msg(address: str) -> bytes:
+    """Build a simple OSC query message (no arguments)."""
+    return _osc_string(address) + _osc_string(",")
+
+
+def _parse_osc_float(data: bytes) -> tuple[str | None, float | None]:
+    """Parse an OSC message with a single float argument."""
+    try:
+        null_idx = data.index(0)
+        address = data[:null_idx].decode()
+        padded = null_idx + (4 - (null_idx + 1) % 4) % 4 + 1
+        tt_null = data.index(0, padded)
+        typetag = data[padded:tt_null].decode()
+        data_start = tt_null + (4 - (tt_null + 1) % 4) % 4 + 1
+        if "f" in typetag:
+            val = struct.unpack(">f", data[data_start:data_start + 4])[0]
+            return address, val
+    except Exception:
+        pass
+    return None, None
 
 
 class MixerBackend(Protocol):
@@ -81,6 +112,58 @@ class OscBackend:
 
     def send_master_fader(self, value: float) -> None:
         self._send("/lr/mix/fader", value)
+
+    def query_faders(self, channels: list[int]) -> dict[int, float]:
+        """Query current fader values from the XR12. Returns {channel: value}."""
+        result: dict[int, float] = {}
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.settimeout(1.0)
+            sock.bind(("", 0))
+
+            # Subscribe so the XR12 responds
+            sock.sendto(_osc_msg("/xremote"), (self._host, self._port))
+            time.sleep(0.05)
+
+            # Query each channel
+            for ch in channels:
+                sock.sendto(_osc_msg(f"/ch/{ch:02d}/mix/fader"), (self._host, self._port))
+                time.sleep(0.02)
+
+            # Read responses
+            deadline = time.monotonic() + 1.0
+            while time.monotonic() < deadline and len(result) < len(channels):
+                try:
+                    data, _ = sock.recvfrom(1024)
+                    addr, val = _parse_osc_float(data)
+                    if addr and val is not None:
+                        for ch in channels:
+                            if addr == f"/ch/{ch:02d}/mix/fader":
+                                result[ch] = val
+                except socket.timeout:
+                    break
+            sock.close()
+        except Exception as e:
+            logger.warning("Failed to query XR12 faders — %r", e)
+        return result
+
+    def query_master_fader(self) -> float | None:
+        """Query current main LR fader value from the XR12."""
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.settimeout(1.0)
+            sock.bind(("", 0))
+            sock.sendto(_osc_msg("/xremote"), (self._host, self._port))
+            time.sleep(0.05)
+            sock.sendto(_osc_msg("/lr/mix/fader"), (self._host, self._port))
+            data, _ = sock.recvfrom(1024)
+            sock.close()
+            addr, val = _parse_osc_float(data)
+            if addr == "/lr/mix/fader":
+                return val
+        except Exception as e:
+            logger.warning("Failed to query XR12 master fader — %r", e)
+        return None
 
 
 class MidiBackend:
@@ -268,3 +351,15 @@ class Mixer:
     def set_master_volume(self, value: float) -> None:
         """Set the main LR fader (0.0–1.0)."""
         self._backend.send_master_fader(value)
+
+    def query_channel_faders(self, channels: list[int]) -> dict[int, float]:
+        """Query current fader values from the mixer. Returns {channel: value}."""
+        if hasattr(self._backend, "query_faders"):
+            return self._backend.query_faders(channels)
+        return {}
+
+    def query_master_fader(self) -> float | None:
+        """Query the current main LR fader value from the mixer."""
+        if hasattr(self._backend, "query_master_fader"):
+            return self._backend.query_master_fader()
+        return None

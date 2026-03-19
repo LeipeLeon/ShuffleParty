@@ -126,6 +126,18 @@ def run() -> None:
         network_host=config.MIDI_EXTENDER_HOST,
     )
 
+    # Sync extender faders with current XR12 state
+    if extender.available:
+        all_channels = [ch for group in channel_map for ch in group]
+        xr12_levels = party.mixer.query_channel_faders(all_channels)
+        for fader_idx, channels in enumerate(channel_map):
+            if channels[0] in xr12_levels:
+                extender.set_fader(fader_idx, xr12_levels[channels[0]])
+        master = party.mixer.query_master_fader()
+        if master is not None:
+            extender.set_master_fader(master)
+            control.set_volume(master)
+
     # Set up the music end event so we detect when shuffle tracks finish
     pygame.mixer.music.set_endevent(SHUFFLE_TRACK_END)
 
