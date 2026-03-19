@@ -1,8 +1,10 @@
-"""Loudness measurement for audio normalization.
+"""Loudness normalization for the XR12 mixer.
 
 Reads the LUFS ID3 tag if present (written by auto_fadeout.py), otherwise
-falls back to measuring with ffmpeg's loudnorm filter. Computes a linear
-gain factor to normalize tracks to a target loudness.
+falls back to measuring with ffmpeg's loudnorm filter. Converts the
+measured LUFS to an XR12 fader position using the Behringer fader law.
+
+Target: shuffle tracks play at -14 LUFS when the fader is at 0 dB.
 """
 
 from __future__ import annotations
@@ -14,7 +16,43 @@ import subprocess
 
 logger = logging.getLogger(__name__)
 
-_TARGET_LUFS = -16.0
+_TARGET_LUFS = -14.0
+
+# Behringer XR12/X-Air fader law (piecewise linear in dB):
+#   position 0.0    = -inf
+#   position 0.0625 = -60 dB
+#   position 0.25   = -30 dB
+#   position 0.5    = -10 dB
+#   position 0.75   =   0 dB
+#   position 1.0    = +10 dB
+
+
+def db_to_fader(db: float) -> float:
+    """Convert a dB value to an XR12 fader position (0.0–1.0)."""
+    if db <= -90:
+        return 0.0
+    if db <= -60:
+        return (db + 90) / 480       # -90..-60 → 0.0..0.0625
+    if db <= -30:
+        return (db + 70) / 160       # -60..-30 → 0.0625..0.25
+    if db <= -10:
+        return (db + 50) / 80        # -30..-10 → 0.25..0.5
+    if db <= 10:
+        return (db + 30) / 40        # -10..+10 → 0.5..1.0
+    return 1.0
+
+
+def fader_to_db(pos: float) -> float:
+    """Convert an XR12 fader position (0.0–1.0) to dB."""
+    if pos <= 0.0:
+        return -90.0
+    if pos <= 0.0625:
+        return pos * 480 - 90        # 0.0..0.0625 → -90..-60
+    if pos <= 0.25:
+        return pos * 160 - 70        # 0.0625..0.25 → -60..-30
+    if pos <= 0.5:
+        return pos * 80 - 50         # 0.25..0.5 → -30..-10
+    return pos * 40 - 30             # 0.5..1.0 → -10..+10
 
 
 def _read_lufs_tag(path: str) -> float | None:
@@ -75,11 +113,12 @@ def measure_lufs(path: str) -> float | None:
         return None
 
 
-def gain_for_target(measured_lufs: float, target_lufs: float = _TARGET_LUFS) -> float:
-    """Compute a linear gain factor to reach the target loudness.
+def fader_for_target(measured_lufs: float, target_lufs: float = _TARGET_LUFS) -> float:
+    """Compute the XR12 fader position to normalize a track to the target LUFS.
 
-    Returns a value between 0.0 and 1.0 (never boosts above unity).
+    If a track is at -14 LUFS, the fader goes to 0 dB (0.75).
+    Louder tracks get a lower fader position, quieter tracks get a higher one.
+    Clamped to the XR12's +10 dB maximum.
     """
-    diff_db = target_lufs - measured_lufs
-    linear = 10 ** (diff_db / 20.0)
-    return min(1.0, max(0.0, linear))
+    gain_db = target_lufs - measured_lufs
+    return db_to_fader(gain_db)

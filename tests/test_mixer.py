@@ -26,21 +26,21 @@ class TestMixer:
             mock_time.monotonic.return_value = 0.0
             mixer.fade_out()
             assert mixer.is_fading
-            assert mixer.dj_level == pytest.approx(1.0)
+            assert mixer.dj_level == pytest.approx(0.75)  # 0 dB
             assert mixer.shuffle_level == pytest.approx(0.0)
 
             mock_time.monotonic.return_value = mixer.fade_duration + 0.1
             mixer.tick()
             assert not mixer.is_fading
             assert mixer.dj_level == pytest.approx(0.0)
-            assert mixer.shuffle_level == pytest.approx(1.0)
+            assert mixer.shuffle_level == pytest.approx(0.75)  # shuffle_gain default
 
     def test_fade_in_starts_and_completes(self):
         backend = MagicMock()
         mixer = self._make_mixer(backend)
 
         with patch("shuffle_party.mixer.time") as mock_time:
-            # First fade out so shuffle_level reaches 1.0
+            # First fade out so shuffle_level reaches shuffle_gain
             mock_time.monotonic.return_value = 0.0
             mixer.fade_out()
             mock_time.monotonic.return_value = mixer.fade_duration + 0.1
@@ -50,11 +50,11 @@ class TestMixer:
             mock_time.monotonic.return_value = 10.0
             mixer.fade_in()
             assert mixer.dj_level == pytest.approx(0.0)
-            assert mixer.shuffle_level == pytest.approx(1.0)
+            assert mixer.shuffle_level == pytest.approx(0.75)
 
             mock_time.monotonic.return_value = 10.0 + mixer.fade_duration + 0.1
             mixer.tick()
-            assert mixer.dj_level == pytest.approx(1.0)
+            assert mixer.dj_level == pytest.approx(0.75)  # 0 dB
             assert mixer.shuffle_level == pytest.approx(0.0)
 
     def test_fade_midpoint_has_intermediate_values(self):
@@ -67,8 +67,8 @@ class TestMixer:
 
             mock_time.monotonic.return_value = mixer.fade_duration / 2
             mixer.tick()
-            assert mixer.dj_level == pytest.approx(0.5)
-            assert mixer.shuffle_level == pytest.approx(0.5)
+            assert mixer.dj_level == pytest.approx(0.375)   # midpoint of 0.75→0.0
+            assert mixer.shuffle_level == pytest.approx(0.375)  # midpoint of 0.0→0.75
 
     def test_fade_sends_to_all_four_channels(self):
         backend = MagicMock()

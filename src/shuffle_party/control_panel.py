@@ -432,7 +432,8 @@ class ControlPanel:
             s = self._fadeout_cue_ms // 1000
             cue_parts.append(f"Out: {s // 60}:{s % 60:02d}")
         if self._track_lufs is not None:
-            db = 20 * math.log10(self._track_gain) if self._track_gain and self._track_gain > 0 else float("-inf")
+            from shuffle_party.loudness import fader_to_db
+            db = fader_to_db(self._track_gain) if self._track_gain else -90.0
             cue_parts.append(f"{self._track_lufs:+.1f} LUFS ({db:+.1f} dB)")
         if cue_parts:
             cue_text = self._font_small.render("  ".join(cue_parts), True, TEXT_DIM)

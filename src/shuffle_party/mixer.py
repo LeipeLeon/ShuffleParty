@@ -266,24 +266,25 @@ class Mixer:
         self.dj_channels = dj_channels
         self.shuffle_channels = shuffle_channels
         self.fade_duration = fade_duration
-        self.dj_level = 1.0
+        self.dj_target = 0.75  # 0 dB on XR12 fader law
+        self.dj_level = self.dj_target
         self.shuffle_level = 0.0
-        self.shuffle_gain = 1.0  # loudness normalization gain for current track
+        self.shuffle_gain = 0.75  # fader position for normalized shuffle track
         self._fade: dict[str, float] | None = None
 
     def fade_out(self) -> None:
         """Start crossfade: DJ channels down, shuffle channels up."""
         target = self.shuffle_gain
-        logger.info("Fade out: DJ 1.0→0.0, Shuffle 0.0→%.2f over %.1fs",
-                     target, self.fade_duration)
-        self._start_fade(dj_start=1.0, dj_end=0.0, shuffle_start=0.0, shuffle_end=target)
+        logger.info("Fade out: DJ %.2f→0.0, Shuffle 0.0→%.2f over %.1fs",
+                     self.dj_level, target, self.fade_duration)
+        self._start_fade(dj_start=self.dj_level, dj_end=0.0, shuffle_start=0.0, shuffle_end=target)
 
     def fade_in(self) -> None:
         """Start crossfade: shuffle channels down, DJ channels up."""
         current = self.shuffle_level
-        logger.info("Fade in: DJ 0.0→1.0, Shuffle %.2f→0.0 over %.1fs",
-                     current, self.fade_duration)
-        self._start_fade(dj_start=0.0, dj_end=1.0, shuffle_start=current, shuffle_end=0.0)
+        logger.info("Fade in: DJ 0.0→%.2f, Shuffle %.2f→0.0 over %.1fs",
+                     self.dj_target, current, self.fade_duration)
+        self._start_fade(dj_start=0.0, dj_end=self.dj_target, shuffle_start=current, shuffle_end=0.0)
 
     def _start_fade(
         self,
@@ -336,7 +337,7 @@ class Mixer:
     def reset(self) -> None:
         """Cancel any active fade and reset levels to initial state."""
         self._fade = None
-        self.dj_level = 1.0
+        self.dj_level = self.dj_target
         self.shuffle_level = 0.0
 
     def set_channel_volume(self, channels: list[int], value: float) -> None:
