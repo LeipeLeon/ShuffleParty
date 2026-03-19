@@ -149,6 +149,15 @@ def run() -> None:
     party.mixer.set_channel_volume(party.mixer.dj_channels, party.mixer.dj_target)
     party.mixer.set_channel_volume(party.mixer.shuffle_channels, 0.0)
 
+    # Start web-based remote display if enabled
+    web_display = None
+    if config.WEB_DISPLAY_ENABLED:
+        from shuffle_party.web_display import WebDisplay
+
+        logo_path = os.path.abspath("de-shuffle.png")
+        web_display = WebDisplay(config.WEB_DISPLAY_PORT, logo_path)
+        web_display.start()
+
     # Set up the music end event so we detect when shuffle tracks finish
     pygame.mixer.music.set_endevent(SHUFFLE_TRACK_END)
 
@@ -308,22 +317,22 @@ def run() -> None:
             else:
                 pygame.mixer.music.set_volume(1.0 - fade_t)
 
+        # Determine alpha for each layer (used by both pygame and web display)
+        if party.state == State.IDLE:
+            timer_alpha = 0
+            logo_alpha = 255
+        elif party.state == State.SHUFFLE:
+            timer_alpha = int(255 * (1.0 - fade_t))
+            logo_alpha = int(255 * fade_t)
+        else:
+            timer_alpha = int(255 * fade_t)
+            logo_alpha = int(255 * (1.0 - fade_t))
+
         # -- Render display window (only if second screen attached) --
         if display_window is not None:
             screen = display_window.get_surface()
             screen.fill(BG_COLOR)
             w, h = screen.get_size()
-
-            # Determine alpha for each layer
-            if party.state == State.IDLE:
-                timer_alpha = 0
-                logo_alpha = 255
-            elif party.state == State.SHUFFLE:
-                timer_alpha = int(255 * (1.0 - fade_t))
-                logo_alpha = int(255 * fade_t)
-            else:
-                timer_alpha = int(255 * fade_t)
-                logo_alpha = int(255 * (1.0 - fade_t))
 
             # Draw logo layer (fit to window, preserving aspect ratio)
             if logo_original and logo_alpha > 0:
@@ -357,6 +366,20 @@ def run() -> None:
 
             display_window.flip()
 
+        # -- Push state to web display --
+        if web_display is not None:
+            from shuffle_party.web_display import DisplayState
+
+            web_display.update(DisplayState(
+                state=party.state.name,
+                remaining_seconds=party.display.remaining_seconds,
+                formatted_time=party.display.format_time(),
+                timer_alpha=timer_alpha,
+                logo_alpha=logo_alpha,
+                crossfading=crossfading,
+                crossfade_duration=CROSSFADE_DURATION,
+            ))
+
         # -- Render control panel --
         control.draw()
 
@@ -365,6 +388,8 @@ def run() -> None:
     buttons.close()
     extender.close()
     party.lighting.close()
+    if web_display is not None:
+        web_display.stop()
     pygame.quit()
     sys.exit()
 

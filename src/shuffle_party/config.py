@@ -33,5 +33,9 @@ MIDI_EXTENDER_HOST = os.environ.get("MIDI_EXTENDER_HOST", "")  # RTP-MIDI over n
 BUTTON_DEVICE = os.environ.get("BUTTON_DEVICE", "/dev/input/event0")
 VOLUME_STEP = float(os.environ.get("VOLUME_STEP", 0.05))
 
+# Web-based remote display
+WEB_DISPLAY_ENABLED = os.environ.get("WEB_DISPLAY_ENABLED", "false").lower() in ("true", "1", "yes")
+WEB_DISPLAY_PORT = int(os.environ.get("WEB_DISPLAY_PORT", 8080))
+
 # Shuffle tracks
 TRACKS_DIR = os.environ.get("TRACKS_DIR", "./tracks/")
