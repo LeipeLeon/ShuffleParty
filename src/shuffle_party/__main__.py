@@ -17,7 +17,7 @@ from shuffle_party import config
 from shuffle_party.app import ShuffleParty, State
 from shuffle_party.buttons import Buttons
 from shuffle_party.control_panel import ControlPanel
-from shuffle_party.loudness import gain_for_target, measure_lufs
+from shuffle_party.loudness import db_to_fader, fader_for_target, measure_lufs
 from shuffle_party.midi_controller import MidiExtender, build_channel_map
 
 logging.basicConfig(
@@ -43,11 +43,11 @@ def preload_track(party, control) -> None:
     if track:
         control.set_track_name(track)
         lufs = measure_lufs(track)
-        gain = gain_for_target(lufs) if lufs is not None else 1.0
+        fader_pos = fader_for_target(lufs) if lufs is not None else db_to_fader(0)
         if lufs is not None:
-            logging.info("Track %.1f LUFS → gain %.2f: %s", lufs, gain, os.path.basename(track))
-        control.set_track_gain(gain, lufs)
-        party.mixer.shuffle_gain = gain
+            logging.info("Track %.1f LUFS → fader %.3f: %s", lufs, fader_pos, os.path.basename(track))
+        control.set_track_gain(fader_pos, lufs)
+        party.mixer.shuffle_gain = fader_pos
         try:
             pygame.mixer.music.load(track)
             pygame.mixer.music.set_volume(0.0)
@@ -144,6 +144,10 @@ def run() -> None:
         if master is not None:
             extender.set_master_fader(master)
             control.set_volume(master)
+
+    # Set XR12 volume channels to initial state (DJ up, shuffle down)
+    party.mixer.set_channel_volume(party.mixer.dj_channels, 1.0)
+    party.mixer.set_channel_volume(party.mixer.shuffle_channels, 0.0)
 
     # Set up the music end event so we detect when shuffle tracks finish
     pygame.mixer.music.set_endevent(SHUFFLE_TRACK_END)
