@@ -36,7 +36,7 @@ class OscBackend:
         try:
             import xair_api  # type: ignore[import-untyped]
 
-            self._client = xair_api.connect(host, port)
+            self._client = xair_api.connect("XR12", ip=host, port=port)
             logger.info("XR12 OSC backend connected at %s:%d", host, port)
         except Exception as e:
             logger.warning("XR12 unreachable at %s:%d — %r", host, port, e)
