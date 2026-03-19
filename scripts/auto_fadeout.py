@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Analyze tracks, detect fade-in and fade-out points, set tags, and generate verification images.
+"""Analyze tracks, detect fade-in and fade-out points, measure LUFS, set tags, and generate images.
 
 For each MP3, decodes audio via ffmpeg, computes RMS in 0.5s windows, and finds:
   - FADEIN_MS:  where the intro reaches normal level (scan from start forward)
   - FADEOUT_MS: where the outro drops below normal level (scan from end backward)
+  - LUFS:       integrated loudness measured with ffmpeg's loudnorm filter
 
 Usage:
     python scripts/auto_fadeout.py tracks/*.mp3
@@ -11,6 +12,7 @@ Usage:
     python scripts/auto_fadeout.py tracks/*.mp3 --dry-run   # preview only, don't write tags
 """
 
+import json
 import math
 import os
 import struct
@@ -255,6 +257,31 @@ def generate_image(
     img.save(out_path)
 
 
+# --- LUFS measurement ---
+
+def measure_lufs(path: str) -> float | None:
+    """Measure integrated loudness (LUFS) using ffmpeg's loudnorm filter."""
+    try:
+        result = subprocess.run(
+            [
+                "ffmpeg", "-hide_banner", "-nostats",
+                "-i", path,
+                "-af", "loudnorm=print_format=json",
+                "-f", "null", "-",
+            ],
+            capture_output=True, text=True, timeout=30,
+        )
+        output = result.stderr
+        json_start = output.rfind("{")
+        json_end = output.rfind("}") + 1
+        if json_start < 0 or json_end <= json_start:
+            return None
+        data = json.loads(output[json_start:json_end])
+        return float(data["input_i"])
+    except Exception:
+        return None
+
+
 # --- Tag writing ---
 
 def set_cue_tag(path: str, desc: str, ms: int) -> None:
@@ -330,6 +357,12 @@ def main() -> None:
             parts.append(f"fadeout at {out_str}")
             if not dry_run:
                 set_cue_tag(path, "FADEOUT_MS", out_ms)
+
+        lufs = measure_lufs(path)
+        if lufs is not None:
+            parts.append(f"{lufs:+.1f} LUFS")
+            if not dry_run:
+                set_cue_tag(path, "LUFS", round(lufs * 10))  # store as int (x10)
 
         if parts:
             print(f"{name}: {', '.join(parts)} / {dur_str}")

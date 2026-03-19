@@ -1,7 +1,8 @@
 """Loudness measurement for audio normalization.
 
-Uses ffmpeg's loudnorm filter to measure integrated LUFS and computes
-a linear gain factor to normalize tracks to a target loudness.
+Reads the LUFS ID3 tag if present (written by auto_fadeout.py), otherwise
+falls back to measuring with ffmpeg's loudnorm filter. Computes a linear
+gain factor to normalize tracks to a target loudness.
 """
 
 from __future__ import annotations
@@ -16,12 +17,36 @@ logger = logging.getLogger(__name__)
 _TARGET_LUFS = -16.0
 
 
-def measure_lufs(path: str) -> float | None:
-    """Measure the integrated loudness (LUFS) of an audio file.
+def _read_lufs_tag(path: str) -> float | None:
+    """Read the LUFS value from the ID3 TXXX:LUFS tag."""
+    try:
+        from mutagen.mp3 import MP3
 
-    Returns the integrated loudness in LUFS, or None if measurement fails.
-    Requires ffmpeg on PATH.
+        audio = MP3(path)
+        if audio.tags is None:
+            return None
+        for key in audio.tags:
+            if key.startswith("TXXX:") and "LUFS" in key.upper():
+                raw = int(audio.tags[key].text[0])
+                return raw / 10.0  # stored as int x10
+    except Exception:
+        pass
+    return None
+
+
+def measure_lufs(path: str) -> float | None:
+    """Get the integrated loudness (LUFS) of an audio file.
+
+    Reads the LUFS ID3 tag if available (instant), otherwise measures
+    with ffmpeg (~5s per track). Returns LUFS or None on failure.
     """
+    # Try cached tag first
+    cached = _read_lufs_tag(path)
+    if cached is not None:
+        logger.debug("LUFS from tag: %.1f for %s", cached, path)
+        return cached
+
+    # Fall back to ffmpeg measurement
     if not shutil.which("ffmpeg"):
         logger.debug("ffmpeg not found — loudness normalization disabled.")
         return None
@@ -36,7 +61,6 @@ def measure_lufs(path: str) -> float | None:
             ],
             capture_output=True, text=True, timeout=30,
         )
-        # The JSON is in stderr, after the last '{'
         output = result.stderr
         json_start = output.rfind("{")
         json_end = output.rfind("}") + 1
