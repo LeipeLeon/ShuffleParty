@@ -181,6 +181,7 @@ def generate_image(
     fadeout_window: int | None,
     drop_db: float,
     out_path: str,
+    lufs: float | None = None,
 ) -> None:
     """Draw a waveform with RMS levels, threshold line, and cue markers."""
     img = Image.new("RGB", (IMG_WIDTH, IMG_HEIGHT), BG_COLOR)
@@ -253,6 +254,12 @@ def generate_image(
     except Exception:
         title_font = ImageFont.load_default()
     draw.text((4, 2), title, fill=TEXT_COLOR, font=title_font)
+
+    if lufs is not None:
+        lufs_label = f"{lufs:+.1f} LUFS"
+        bbox = draw.textbbox((0, 0), lufs_label, font=title_font)
+        lufs_w = bbox[2] - bbox[0]
+        draw.text((IMG_WIDTH - lufs_w - 6, 2), lufs_label, fill=TEXT_COLOR, font=title_font)
 
     img.save(out_path)
 
@@ -371,7 +378,7 @@ def main() -> None:
 
         img_name = os.path.splitext(name)[0] + ".png"
         img_path = os.path.join(out_dir, img_name)
-        generate_image(path, rms, fadein_idx, fadeout_idx, drop_db, img_path)
+        generate_image(path, rms, fadein_idx, fadeout_idx, drop_db, img_path, lufs)
 
     print(f"\nPreview images saved to {out_dir}/")
 
