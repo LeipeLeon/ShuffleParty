@@ -116,18 +116,21 @@ class _UsbTransport:
 
 
 class _NetworkTransport:
-    """RTP-MIDI network transport."""
+    """RTP-MIDI network transport with automatic reconnection."""
 
     def __init__(self, host: str, port: int = 5004) -> None:
         from shuffle_party.rtpmidi import RtpMidiClient
 
-        self.available = False
         self._client = RtpMidiClient(host, port, name="ShuffleParty")
-        if self._client.connect():
-            self.available = True
+        self._initial_connect = self._client.connect()
+        if self._initial_connect:
             logger.info("RTP-MIDI connected to %s:%d", host, port)
         else:
             logger.warning("RTP-MIDI connection to %s:%d failed.", host, port)
+
+    @property
+    def available(self) -> bool:
+        return self._initial_connect
 
     def iter_pending(self) -> list[tuple[int, int, int]]:
         result = []
