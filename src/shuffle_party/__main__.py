@@ -145,8 +145,8 @@ def run() -> None:
             extender.set_master_fader(master)
             control.set_volume(master)
 
-    # Set XR12 volume channels to initial state (DJ up, shuffle down)
-    party.mixer.set_channel_volume(party.mixer.dj_channels, 1.0)
+    # Set XR12 volume channels to initial state (DJ at 0 dB, shuffle off)
+    party.mixer.set_channel_volume(party.mixer.dj_channels, party.mixer.dj_target)
     party.mixer.set_channel_volume(party.mixer.shuffle_channels, 0.0)
 
     # Set up the music end event so we detect when shuffle tracks finish
