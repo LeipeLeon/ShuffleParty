@@ -4,7 +4,7 @@ Reads the LUFS ID3 tag if present (written by auto_fadeout.py), otherwise
 falls back to measuring with ffmpeg's loudnorm filter. Converts the
 measured LUFS to an XR12 fader position using the Behringer fader law.
 
-Target: shuffle tracks play at -14 LUFS when the fader is at 0 dB.
+Target: shuffle tracks play at -10 LUFS when the fader is at 0 dB.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ import subprocess
 
 logger = logging.getLogger(__name__)
 
-_TARGET_LUFS = -14.0
+_TARGET_LUFS = -10.0
 
 # Behringer XR12/X-Air fader law (piecewise linear in dB):
 #   position 0.0    = -inf
